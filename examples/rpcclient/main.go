@@ -1,0 +1,55 @@
+package main
+
+import (
+	"fmt"
+	"github.com/pqabelian/abelian-sdk-go-v2/abelian/chain"
+)
+
+func main() {
+	clientConfig := chain.NewClientConfig(
+		"http://localhost:54321",
+		chain.WithAuth("rpcuser", "rpcpass"),
+	)
+	client, err := chain.NewClient(clientConfig)
+	if err != nil {
+		panic(fmt.Errorf("fail to create client: %v", err))
+	}
+
+	info, err := client.GetChainInfo()
+	if err != nil {
+		panic(fmt.Errorf("fail to get block hash: %v", err))
+	}
+	fmt.Printf("chain info: %#+v\n", info)
+
+	height := int64(1204)
+	blockID, err := client.GetBlockHash(height)
+	if err != nil {
+		panic(fmt.Errorf("fail to get block id: %v", err))
+	}
+	fmt.Printf("block hash is %s at height %d\n", blockID, height)
+
+	block, err := client.GetBlock(blockID)
+	if err != nil {
+		panic(fmt.Errorf("fail to get block id: %v", err))
+	}
+	fmt.Printf("block with id %s: %#+v\n", blockID, block)
+
+	tx, err := client.GetRawTx(block.TxHashes[0])
+	if err != nil {
+		panic(fmt.Errorf("fail to get transaction: %v", err))
+	}
+	fmt.Printf("tx with id %s: %#+v\n", block.TxHashes[0], tx)
+
+	unconfirmedTxs, err := client.GetRawMempool()
+	if err != nil {
+		panic(fmt.Errorf("fail to get mempool: %v", err))
+	}
+	if len(unconfirmedTxs) == 0 {
+		fmt.Printf("mempool has no unconfirmed transactions.\n")
+	} else {
+		fmt.Printf("mempool has %d unconfirmed transactions:\n", len(unconfirmedTxs))
+		for i := 0; i < len(unconfirmedTxs); i++ {
+			fmt.Printf("%s\n", unconfirmedTxs[i])
+		}
+	}
+}
