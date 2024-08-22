@@ -80,6 +80,7 @@ func GenerateSeed(cryptoScheme CryptoScheme, privacyLevel PrivacyLevel) (*Crypto
 		return NewRootSeeds(cryptoScheme, privacyLevel, coinSpendKeyRootSeed, coinSerialNumberKeyRootSeed, coinValueKeyRootSeed, coinDetectorRootKey)
 
 	default:
+		log.Errorf("error %v, got %v", ErrInvalidCryptoScheme, cryptoScheme)
 		return nil, fmt.Errorf("%v, got %v", ErrInvalidCryptoScheme, cryptoScheme)
 	}
 }
@@ -96,6 +97,7 @@ func GenerateCryptoKeysAndAddressBySeedBytes(seedBytes []byte) (*CryptoKeysAndAd
 	} else if cryptoSeeds.seedsType == seedsTypeRand {
 		return GenerateCryptoKeysAndAddressByRandSeeds(cryptoSeeds)
 	} else {
+		log.Errorf("call GenerateCryptoKeysAndAddressBySeedBytes with invalid seeds")
 		return nil, AssertError("call GenerateCryptoKeysAndAddressBySeedBytes with invalid seeds")
 	}
 }
@@ -126,6 +128,7 @@ func GenerateCryptoKeysAndAddressByRootSeeds(rootSeeds *CryptoSeeds) (*CryptoKey
 
 	cryptoAddress, err := NewCryptoAddress(cryptoAddressBytes)
 	if err != nil {
+		log.Errorf("fail to generate crypto address with bytes %v", cryptoAddressBytes)
 		return nil, err
 	}
 
@@ -143,6 +146,9 @@ func GenerateCryptoKeysAndAddressByRootSeeds(rootSeeds *CryptoSeeds) (*CryptoKey
 // ExtractPublicRandFromCryptoAddress extract public rand from crypto address
 func ExtractPublicRandFromCryptoAddress(cryptoAddress *CryptoAddress) ([]byte, error) {
 	publicRand, err := api.ExtractPublicRandFromCryptoAddress(cryptoAddress.Data())
+	if err != nil {
+		log.Errorf("fail to extract public rand from crypto address %v", cryptoAddress.Data())
+	}
 	return publicRand, err
 }
 
@@ -154,13 +160,16 @@ func GenerateRandSeedsByRootSeedsFromPublicRand(rootSeedBytes []byte, publicRand
 		return nil, err
 	}
 	if rootSeeds.seedsType != seedsTypeRoot {
+		log.Errorf("call GenerateRandSeedsByRootSeedsFromPublicRand with invalid type seeds")
 		return nil, AssertError("call GenerateRandSeedsByRootSeedsFromPublicRand with invalid seeds")
 	}
 
 	if rootSeeds.cryptoScheme != CryptoSchemePQRingCTX {
+		log.Errorf("expected crypto scheme %d, but got %d ", CryptoSchemePQRingCTX, rootSeeds.cryptoScheme)
 		return nil, fmt.Errorf("expected crypto scheme %d, but got %d ", CryptoSchemePQRingCTX, rootSeeds.cryptoScheme)
 	}
 	if rootSeeds.privacyLevel != PrivacyLevelFullPrivacyRand && rootSeeds.privacyLevel != PrivacyLevelPseudonym {
+		log.Errorf("invalid privacy level %d for crypto scheme %d", rootSeeds.privacyLevel, rootSeeds.cryptoScheme)
 		return nil, fmt.Errorf("invalid privacy level %d for crypto scheme %d", rootSeeds.privacyLevel, rootSeeds.cryptoScheme)
 	}
 
@@ -184,6 +193,7 @@ func GenerateRandSeedsByRootSeedsFromPublicRand(rootSeedBytes []byte, publicRand
 // Different from GenerateCryptoKeysAndAddressByRootSeeds, multiple call use will produce THE SAME pairs
 func GenerateCryptoKeysAndAddressByRandSeeds(randSeeds *CryptoSeeds) (*CryptoKeysAndAddress, error) {
 	if randSeeds.seedsType != seedsTypeRand {
+		log.Errorf("call GenerateCryptoKeysAndAddressByRandSeeds with invalid type seeds")
 		return nil, AssertError("call GenerateCryptoKeysAndAddressByRandSeeds invalid seeds")
 	}
 	var coinDetectorKey []byte
@@ -203,6 +213,7 @@ func GenerateCryptoKeysAndAddressByRandSeeds(randSeeds *CryptoSeeds) (*CryptoKey
 
 	cryptoAddress, err := NewCryptoAddress(cryptoAddressBytes)
 	if err != nil {
+		log.Errorf("fail to generate crypto address with bytes %v", cryptoAddressBytes)
 		return nil, err
 	}
 	cryptoKeysAndAddress := &CryptoKeysAndAddress{
@@ -234,10 +245,13 @@ func GenerateCryptoKeysAndAddressByRootSeedsFromPublicRand(rootSeedBytes []byte,
 		rootSeeds.coinValueKeySeed, rootSeeds.coinDetectorKey,
 		publicRand)
 	if err != nil {
+		log.Errorf("fail to re-generate crypto address from root seed")
 		return nil, err
 	}
+
 	cryptoAddress, err := NewCryptoAddress(cryptoAddressBytes)
 	if err != nil {
+		log.Errorf("fail to generate crypto address from crypto address bytes %v", cryptoAddressBytes)
 		return nil, err
 	}
 	cryptoKeysAndAddress := &CryptoKeysAndAddress{
@@ -256,6 +270,7 @@ func DecodeCoinAddressFromSerializedTxOutData(txVersion uint32, txOutData []byte
 	// potentially use the latest transaction version default
 	coinAddressData, err := api.ExtractCoinAddressFromSerializedTxOut(txVersion, txOutData)
 	if err != nil {
+		log.Errorf("fail to extract coin address from tx version %d and data %v", txVersion, txOutData)
 		return nil, err
 	}
 
@@ -266,34 +281,61 @@ type OutPoint = api.OutPoint
 
 func NewOutPointFromTxId(txID string, index uint8) (*OutPoint, error) {
 	outPoint, err := api.NewOutPointFromTxIdStr(txID, index)
+	if err != nil {
+		log.Errorf("fail to create outpoint from txid %s and index %d", txID, index)
+	}
 	return outPoint, err
 }
 
 func GetTxoPrivacyLevel(txVersion uint32, txOutData []byte) (PrivacyLevel, error) {
-	return api.GetTxoPrivacyLevel(txVersion, txOutData)
+	privacyLevel, err := api.GetTxoPrivacyLevel(txVersion, txOutData)
+	if err != nil {
+		log.Errorf("fail to get txo privacy level from version %d and data %v", txVersion, txOutData)
+	}
+	return privacyLevel, err
 }
 
 func TxoCoinDetectByCoinDetectorRootKey(txVersion uint32, serializedTxOut []byte, coinDetectorRootKey []byte) (bool, error) {
-	return api.TxoCoinDetectByCoinDetectorRootKey(txVersion, serializedTxOut, coinDetectorRootKey)
+	success, err := api.TxoCoinDetectByCoinDetectorRootKey(txVersion, serializedTxOut, coinDetectorRootKey)
+	if err != nil {
+		log.Errorf("fail to detect txo coin from version %d and data %v with root key", txVersion, serializedTxOut)
+	}
+	return success, err
 }
 
 func TxoCoinReceiveByRootSeeds(txVersion uint32, serializedTxOut []byte, coinValueKeyRootSeed []byte, coinDetectorRootKey []byte) (bool, uint64, error) {
-	return api.TxoCoinReceiveByRootSeeds(txVersion, serializedTxOut, coinValueKeyRootSeed, coinDetectorRootKey)
+	success, value, err := api.TxoCoinReceiveByRootSeeds(txVersion, serializedTxOut, coinValueKeyRootSeed, coinDetectorRootKey)
+	if err != nil {
+		log.Errorf("fail to receive txo coin from version %d and data %v with root seeds", txVersion, serializedTxOut)
+	}
+	return success, value, err
 }
 
 func GenerateCoinSerialNumberByRootSeeds(
 	outPoints []*OutPoint,
 	serializedBlocksForRingGroup [][]byte,
 	coinSerialNumberKeyRootSeed []byte) (serialNumbers [][]byte, err error) {
-	return api.GenerateCoinSerialNumberByRootSeeds(outPoints, serializedBlocksForRingGroup, coinSerialNumberKeyRootSeed)
+	serialNumber, err := api.GenerateCoinSerialNumberByRootSeeds(outPoints, serializedBlocksForRingGroup, coinSerialNumberKeyRootSeed)
+	if err != nil {
+		log.Errorf("fail to generate serial number from version %d and data %v with root seeds", outPoints, serializedBlocksForRingGroup)
+	}
+	return serialNumber, err
 }
 
 func TxoCoinReceiveByKeys(txVersion uint32, serializedTxOut []byte, cryptoAddress []byte, cryptoValueSecretKey []byte) (bool, uint64, error) {
-	return api.TxoCoinReceiveByKeys(txVersion, serializedTxOut, cryptoAddress, cryptoValueSecretKey)
+	success, value, err := api.TxoCoinReceiveByKeys(txVersion, serializedTxOut, cryptoAddress, cryptoValueSecretKey)
+	if err != nil {
+		log.Errorf("fail to receive txo coin from version %d and data %v with keys", txVersion, serializedTxOut)
+	}
+	return success, value, err
 }
 
 func GenerateCoinSerialNumberByKeys(outPoints []*OutPoint,
 	serializedBlocksForRingGroup [][]byte,
 	cryptoSnsks [][]byte) (serialNumbers [][]byte, err error) {
-	return api.GenerateCoinSerialNumberByKeys(outPoints, serializedBlocksForRingGroup, cryptoSnsks)
+	serialNumber, err := api.GenerateCoinSerialNumberByKeys(outPoints, serializedBlocksForRingGroup, cryptoSnsks)
+	if err != nil {
+		log.Errorf("fail to generate serial number from version %d and data %v with keys", outPoints, serializedBlocksForRingGroup)
+	}
+	return serialNumber, err
 }

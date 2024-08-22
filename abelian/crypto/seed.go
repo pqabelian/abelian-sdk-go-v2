@@ -88,9 +88,11 @@ func (s *CryptoSeeds) Validate() error {
 	switch s.cryptoScheme {
 	case CryptoSchemePQRingCT:
 		if s.seedsType != seedsTypeRand {
+			log.Errorf("mismatched seed type %d with crypto scheme %d", s.seedsType, s.cryptoScheme)
 			return ErrMismatchedSeedType
 		}
 		if s.privacyLevel != PrivacyLevelFullPrivacyPre {
+			log.Errorf("mismatched privacy level %d with crypto scheme %d", s.privacyLevel, s.cryptoScheme)
 			return ErrMismatchedCryptoSchemePrivacyLevel
 		}
 		if s.coinSpendKeySeed == nil && len(s.coinSpendKeySeed) == 0 {
@@ -101,9 +103,11 @@ func (s *CryptoSeeds) Validate() error {
 		}
 	case CryptoSchemePQRingCTX:
 		if s.privacyLevel != PrivacyLevelFullPrivacyRand && s.privacyLevel != PrivacyLevelPseudonym {
+			log.Errorf("mismatched privacy level %d with crypto scheme %d", s.privacyLevel, s.cryptoScheme)
 			return ErrMismatchedCryptoSchemePrivacyLevel
 		}
 		if s.seedsType != seedsTypeRand && s.seedsType != seedsTypeRoot {
+			log.Errorf("mismatched seed type %d with crypto scheme %d", s.seedsType, s.cryptoScheme)
 			return ErrMismatchedCryptoSchemePrivacyLevel
 		}
 		if s.coinSpendKeySeed == nil && len(s.coinSpendKeySeed) == 0 {
@@ -126,6 +130,7 @@ func (s *CryptoSeeds) Validate() error {
 			}
 		}
 	default:
+		log.Errorf("invalid crypto scheme: %d", s.cryptoScheme)
 		return ErrInvalidCryptoScheme
 	}
 
@@ -134,6 +139,7 @@ func (s *CryptoSeeds) Validate() error {
 
 func (s *CryptoSeeds) Serialize() ([]byte, error) {
 	if err := s.Validate(); err != nil {
+		log.Errorf("failed to serialize crypto seeds: %v", err)
 		return nil, err
 	}
 

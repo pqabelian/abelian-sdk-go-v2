@@ -3,6 +3,7 @@ module github.com/pqabelian/abelian-sdk-go-v2
 go 1.22
 
 require (
+	github.com/jrick/logrotate v1.0.0
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/pqabelian/abec v1.0.1-0.20240724140110-9d84da20fd1a
 	github.com/pqabelian/abeutil v0.0.0-20231107022913-d6d3bf295938

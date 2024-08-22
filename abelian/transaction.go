@@ -24,6 +24,7 @@ func SortTxInDescs(txIndescs []*TxInDesc) error {
 	for i := 0; i < len(txIndescs); i++ {
 		_, err := crypto.GetTxoPrivacyLevel(txIndescs[i].TxVersion, txIndescs[i].TxOutData)
 		if err != nil {
+			sdkLog.Errorf("SortTxInDescs: %v", err)
 			return err
 		}
 	}
@@ -102,6 +103,7 @@ func GenerateUnsignedRawTx(txDesc *TxDesc) (*UnsignedRawTx, error) {
 	for i := 0; i < len(txDesc.TxInDescs); i++ {
 		outPoint, err := api.NewOutPointFromTxIdStr(txDesc.TxInDescs[i].TxID, txDesc.TxInDescs[i].TxOutIndex)
 		if err != nil {
+			sdkLog.Errorf("fail to new outpoint in GenerateUnsignedRawTx with error %v", err)
 			return nil, err
 		}
 		outPointsToSpend = append(outPointsToSpend, outPoint)
@@ -128,18 +130,12 @@ func GenerateUnsignedRawTx(txDesc *TxDesc) (*UnsignedRawTx, error) {
 		txDesc.TxMemo,
 	)
 	if err != nil {
+		sdkLog.Errorf("fail to build tranasction request from blocks: %v", err)
 		return nil, err
 	}
 
-	// Create an unsigned raw tx and return it.
-	//signers := make([]int64, 0, len(txDesc.TxInDescs))
-	//for _, txInDesc := range txDesc.TxInDescs {
-	//	signers = append(signers, txInDesc.OwnAccountID)
-	//}
-
 	return &UnsignedRawTx{
 		Data: serializedTxRequestDesc,
-		//OwnAccountIDs: signers,
 	}, nil
 }
 
@@ -151,6 +147,7 @@ func GenerateSignedRawTx(unsignedRawTx *UnsignedRawTx, signerAccounts []Account)
 	firstAccountType := signerAccounts[0].AccountType()
 	for i := 1; i < len(signerAccounts); i++ {
 		if signerAccounts[i].AccountType() != firstAccountType {
+			sdkLog.Errorf("all specified account must be the same type")
 			return nil, fmt.Errorf("all specified account must be the same type")
 		}
 	}
@@ -176,6 +173,7 @@ func GenerateSignedRawTx(unsignedRawTx *UnsignedRawTx, signerAccounts []Account)
 		}
 		serializedTxFull, txid, err = api.CreateTransferTxByRootSeed(unsignedRawTx.Data, seeds)
 		if err != nil {
+			sdkLog.Errorf("fail to create transfer tx by root seed: %v", err)
 			return nil, err
 		}
 	case AccountTypeKeys:
@@ -197,6 +195,7 @@ func GenerateSignedRawTx(unsignedRawTx *UnsignedRawTx, signerAccounts []Account)
 		// Call API to create the signed raw tx.
 		serializedTxFull, txid, err = api.CreateTransferTxByCryptoKeys(unsignedRawTx.Data, cryptoKeys)
 		if err != nil {
+			sdkLog.Errorf("fail to create transfer tx by crypto keys: %v", err)
 			return nil, err
 		}
 	default:

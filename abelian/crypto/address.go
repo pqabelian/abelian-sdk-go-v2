@@ -77,6 +77,7 @@ func NewCoinAddress(data []byte) (CoinAddress, error) {
 			data: data,
 		}
 	default:
+		log.Errorf("invalid coin address %v with length %d", data, len(data))
 		return nil, ErrInvalidAddress
 	}
 
@@ -114,6 +115,7 @@ func (address *CoinAddressFullPrivacyPre) Fingerprint() []byte {
 
 func (address *CoinAddressFullPrivacyPre) Validate() error {
 	if len(address.data) != COIN_ADDRESS_LENGTH_FULL_PRIVACY_PRE {
+		log.Errorf("invalid coin address %v with length %d for privacy level %d", address.data, len(address.data), COIN_ADDRESS_LENGTH_FULL_PRIVACY_PRE)
 		return fmt.Errorf("coin address data length is not %d", COIN_ADDRESS_LENGTH_FULL_PRIVACY_PRE)
 	}
 	return nil
@@ -146,6 +148,7 @@ func (address *CoinAddressFullPrivacy) Fingerprint() []byte {
 
 func (address *CoinAddressFullPrivacy) Validate() error {
 	if len(address.data) != COIN_ADDRESS_LENGTH_FULL_PRIVACY_RAND {
+		log.Errorf("invalid coin address %v with length %d for privacy level %d", address.data, len(address.data), COIN_ADDRESS_LENGTH_FULL_PRIVACY_RAND)
 		return fmt.Errorf("coin address data length is not %d", COIN_ADDRESS_LENGTH_FULL_PRIVACY_RAND)
 	}
 
@@ -179,6 +182,7 @@ func (address *CoinAddressPseudonym) Fingerprint() []byte {
 
 func (address *CoinAddressPseudonym) Validate() error {
 	if len(address.data) != COIN_ADDRESS_LENGTH_PSEUDONYM {
+		log.Errorf("invalid coin address %v with length %d for privacy level %d", address.data, len(address.data), COIN_ADDRESS_LENGTH_PSEUDONYM)
 		return fmt.Errorf("coin address data length is not %d", COIN_ADDRESS_LENGTH_PSEUDONYM)
 	}
 
@@ -210,18 +214,22 @@ func (a *CryptoAddress) Validate() error {
 	switch a.cryptoScheme {
 	case CryptoSchemePQRingCT:
 		if a.privacyLevel != PrivacyLevelFullPrivacyPre {
+			log.Errorf("mismatched privacy level %d and crypto scheme %d", a.privacyLevel, a.cryptoScheme)
 			return fmt.Errorf("mismatched crypto scheme %d and privacy level %d", a.cryptoScheme, a.privacyLevel)
 		}
 		if len(a.data) != CRYPTO_ADDRESS_LENGTH_FULL_PRIVACT_PRE {
+			log.Errorf("invalid crypto address %v with length %d for privacy level %d", a.data, len(a.data), CRYPTO_ADDRESS_LENGTH_FULL_PRIVACT_PRE)
 			return fmt.Errorf("crypto address data length is not %d, but got %d", CRYPTO_ADDRESS_LENGTH_FULL_PRIVACT_PRE, len(a.data))
 		}
 	case CryptoSchemePQRingCTX:
 		if a.privacyLevel == PrivacyLevelFullPrivacyRand {
 			if len(a.data) != CRYPTO_ADDRESS_LENGTH_FULL_PRIVACY_RAND {
+				log.Errorf("invalid crypto address %v with length %d for privacy level %d", a.data, len(a.data), CRYPTO_ADDRESS_LENGTH_FULL_PRIVACY_RAND)
 				return fmt.Errorf("crypto address data length should be %d, but got %d", CRYPTO_ADDRESS_LENGTH_FULL_PRIVACY_RAND, len(a.data))
 			}
 		} else if a.privacyLevel == PrivacyLevelPseudonym {
 			if len(a.data) != CRYPTO_ADDRESS_LENGTH_PSEUDONYM {
+				log.Errorf("invalid crypto address %v with length %d for privacy level %d", a.data, len(a.data), CRYPTO_ADDRESS_LENGTH_PSEUDONYM)
 				return fmt.Errorf("crypto address data length should be %d, but got %d", CRYPTO_ADDRESS_LENGTH_PSEUDONYM, len(a.data))
 			}
 		} else {
@@ -247,15 +255,18 @@ func (a *CryptoAddress) GetCoinAddress() CoinAddress {
 
 func NewCryptoAddress(data []byte) (*CryptoAddress, error) {
 	if len(data) < 4 {
+		log.Errorf("invalid crypto address length %d", len(data))
 		return nil, ErrInvalidAddress
 	}
 	cryptoScheme, err := api.DeserializeCryptoScheme(data[:4])
 	if err != nil {
+		log.Errorf("invalid crypto scheme %v in crypto address", data[:4])
 		return nil, fmt.Errorf("%v:%s", ErrInvalidCryptoScheme, err)
 	}
 
 	privacyLevel, coinAddrData, err := api.ExtractCoinAddressFromCryptoAddress(data)
 	if err != nil {
+		log.Errorf("fail to extract coin address from crypto address %v", data)
 		return nil, fmt.Errorf("%v:%s", ErrInvalidAddress, err)
 	}
 
@@ -266,6 +277,7 @@ func NewCryptoAddress(data []byte) (*CryptoAddress, error) {
 	}
 	cryptoAddress.coinAddress, err = NewCoinAddress(coinAddrData)
 	if err != nil {
+		log.Errorf("fail to extract coin address from crypto address %v", data)
 		return nil, fmt.Errorf("%v:%s", ErrInvalidAddress, err)
 	}
 

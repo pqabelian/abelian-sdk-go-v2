@@ -114,11 +114,13 @@ func (client *Client) Do(method string, params []interface{}, result any) error 
 	}
 	jsonBody, err := json.Marshal(jsonReq)
 	if err != nil {
+		sdkLog.Errorf("fail to marshal json request: %v", err)
 		return err
 	}
 
 	req, err := http.NewRequest(http.MethodPost, client.Endpoint, bytes.NewBuffer(jsonBody))
 	if err != nil {
+		sdkLog.Errorf("fail to create request: %v", err)
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
@@ -126,6 +128,7 @@ func (client *Client) Do(method string, params []interface{}, result any) error 
 
 	resp, err := client.Client.Do(req)
 	if err != nil {
+		sdkLog.Errorf("fail to do request: %v", err)
 		return err
 	}
 	defer resp.Body.Close()
@@ -138,9 +141,11 @@ func (client *Client) Do(method string, params []interface{}, result any) error 
 	respObj := &JSONRPCResponse{}
 	err = json.Unmarshal(body, respObj)
 	if err != nil {
+		sdkLog.Errorf("fail to unmarshal json response: %v", err)
 		return err
 	}
 	if respObj.Error != nil {
+		sdkLog.Errorf("response error: %v", respObj.Error)
 		return respObj.Error
 	}
 
@@ -150,6 +155,7 @@ func (client *Client) Do(method string, params []interface{}, result any) error 
 
 	err = json.Unmarshal(respObj.Result, &result)
 	if err != nil {
+		sdkLog.Errorf("fail to unmarshal json result: %v", err)
 		return err
 	}
 	return nil
