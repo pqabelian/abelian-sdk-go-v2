@@ -16,5 +16,3 @@ var ErrMismatchedCryptoSchemePrivacyLevel = AssertError("mismatch crypto scheme 
 var ErrMismatchedSeedType = AssertError("mismatched seed type")
 var ErrCorruptedSeed = AssertError("corrupted seed")
 var ErrInvalidAddress = AssertError("invalid address")
-
-var ErrInvalidAccountType = AssertError("invalid type of account")

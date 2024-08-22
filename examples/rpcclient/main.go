@@ -2,18 +2,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/pqabelian/abelian-sdk-go-v2/abelian/chain"
+	"github.com/pqabelian/abelian-sdk-go-v2/examples/common"
 )
 
 func main() {
-	clientConfig := chain.NewClientConfig(
-		"http://localhost:54321",
-		chain.WithAuth("rpcuser", "rpcpass"),
-	)
-	client, err := chain.NewClient(clientConfig)
-	if err != nil {
-		panic(fmt.Errorf("fail to create client: %v", err))
-	}
+	client := common.Client
 
 	info, err := client.GetChainInfo()
 	if err != nil {
@@ -21,7 +14,7 @@ func main() {
 	}
 	fmt.Printf("chain info: %#+v\n", info)
 
-	height := int64(1204)
+	height := int32(0)
 	blockID, err := client.GetBlockHash(height)
 	if err != nil {
 		panic(fmt.Errorf("fail to get block id: %v", err))

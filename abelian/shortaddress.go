@@ -2,7 +2,6 @@ package abelian
 
 import (
 	"fmt"
-	"github.com/pqabelian/abelian-sdk-go-v2/abelian/chain"
 	"github.com/pqabelian/abelian-sdk-go-v2/abelian/crypto"
 )
 
@@ -38,7 +37,7 @@ func (address *ShortAbelAddress) Validate() error {
 
 // NewShortAbelAddress
 /* TODO confirm the short abel address */
-func NewShortAbelAddress(chainID chain.NetworkID, fingerprint []byte, cryptoAddressHash []byte) (*ShortAbelAddress, error) {
+func NewShortAbelAddress(chainID NetworkID, fingerprint []byte, cryptoAddressHash []byte) (*ShortAbelAddress, error) {
 	saData := make([]byte, 0, 2+len(fingerprint)+len(cryptoAddressHash))
 	saData = append(saData, 0xab, 0xe1+byte(chainID))
 	saData = append(saData, fingerprint...)
@@ -51,7 +50,7 @@ func NewShortAbelAddress(chainID chain.NetworkID, fingerprint []byte, cryptoAddr
 	return &ShortAbelAddress{data: saData}, nil
 }
 
-func GetShortAbelAddressFromAbelAddress(address *chain.AbelAddress) *ShortAbelAddress {
+func GetShortAbelAddressFromAbelAddress(address *AbelAddress) *ShortAbelAddress {
 	shortAbelAddress, _ := NewShortAbelAddress(
 		address.GetNetID(),
 		address.GetCryptoAddress().GetCoinAddress().Fingerprint(),

@@ -1,4 +1,4 @@
-package chain
+package abelian
 
 import (
 	"encoding/json"
@@ -32,11 +32,11 @@ type ChainInfo struct {
 	Version         int64   `json:"version"`
 	ProtocolVersion int64   `json:"protocolversion"`
 	RelayFee        float64 `json:"relayfee"`
-	NetID           byte    `json:"netid"`
+	NetID           uint8   `json:"netid"`
 }
 
 type Block struct {
-	Height        int64    `json:"height"`
+	Height        int32    `json:"height"`
 	Confirmations int64    `json:"confirmations"`
 	Version       int64    `json:"version"`
 	VersionHex    string   `json:"versionHex"`
@@ -58,17 +58,19 @@ type Block struct {
 }
 
 type TxVin struct {
-	UTXORing     UTXORing `json:"prevutxoring"`
-	SerialNumber string   `json:"serialnumber"`
+	TXORing      TXORing `json:"prevutxoring"`
+	SerialNumber string  `json:"serialnumber"`
 }
 
-type UTXORing struct {
-	Version     int64    `json:"version"`
-	BlockHashes []string `json:"blockhashs"`
-	OutPoints   []struct {
-		TxHash string `json:"txid"`
-		Index  int64  `json:"index"`
-	} `json:"outpoints"`
+type OutPoint struct {
+	TxHash string `json:"txid"`
+	Index  uint8  `json:"index"`
+}
+
+type TXORing struct {
+	Version     int64      `json:"version"`
+	BlockHashes []string   `json:"blockhashs"`
+	OutPoints   []OutPoint `json:"outpoints"`
 }
 
 type TxVout struct {
@@ -84,7 +86,7 @@ type Tx struct {
 	BlockHash     string    `json:"blockhash"`
 	BlockTime     int64     `json:"blocktime"`
 	Confirmations int64     `bson:"confirmations"`
-	Version       int64     `json:"version"`
+	Version       uint32    `json:"version"`
 	Size          int64     `json:"size"`
 	FullSize      int64     `json:"fullsize"`
 	Memo          string    `json:"memo"`

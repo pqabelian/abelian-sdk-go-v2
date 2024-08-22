@@ -1,4 +1,4 @@
-package chain
+package abelian
 
 import (
 	"github.com/pqabelian/abelian-sdk-go-v2/abelian/logger"

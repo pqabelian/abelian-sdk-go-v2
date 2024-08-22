@@ -1,4 +1,4 @@
-package chain
+package abelian
 
 import (
 	"bytes"
