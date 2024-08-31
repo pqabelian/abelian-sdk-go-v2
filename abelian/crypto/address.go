@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	api "github.com/pqabelian/abec/sdkapi/v2"
+	"golang.org/x/crypto/sha3"
 )
 
 // AddressType enumerate all possible address types
@@ -142,7 +143,7 @@ func (address *CoinAddressFullPrivacy) PrivacyLevel() PrivacyLevel {
 }
 
 func (address *CoinAddressFullPrivacy) Fingerprint() []byte {
-	hash := sha256.Sum256(address.data)
+	hash := sha3.Sum256(address.data)
 	return hash[:]
 }
 
@@ -176,7 +177,7 @@ func (address *CoinAddressPseudonym) PrivacyLevel() PrivacyLevel {
 }
 
 func (address *CoinAddressPseudonym) Fingerprint() []byte {
-	hash := sha256.Sum256(address.data)
+	hash := sha3.Sum256(address.data)
 	return hash[:]
 }
 
