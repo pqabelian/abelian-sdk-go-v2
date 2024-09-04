@@ -26,8 +26,8 @@ func (address *AbelAddress) Data() []byte {
 }
 
 func (address *AbelAddress) Validate() error {
-	if len(address.data) != ABEL_ADDRESS_LENGTH_FULL_PRIVACT_PRE ||
-		len(address.data) != ABEL_ADDRESS_LENGTH_RINGCT ||
+	if len(address.data) != ABEL_ADDRESS_LENGTH_FULL_PRIVACT_PRE &&
+		len(address.data) != ABEL_ADDRESS_LENGTH_RINGCT &&
 		len(address.data) != ABEL_ADDRESS_LENGTH_PSEUDONYM {
 		return fmt.Errorf("abel address data length is not one of {%d,%d,%d}",
 			ABEL_ADDRESS_LENGTH_FULL_PRIVACT_PRE,
