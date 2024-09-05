@@ -145,7 +145,7 @@ func (client *Client) Do(method string, params []interface{}, result any) error 
 		return err
 	}
 	if respObj.Error != nil {
-		sdkLog.Errorf("response error: %v", respObj.Error)
+		sdkLog.Errorf("request method %s with param %v, response error: %v", method, params, respObj.Error)
 		return respObj.Error
 	}
 

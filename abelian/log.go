@@ -70,3 +70,17 @@ func setLogLevels(logLevel string) {
 		setLogLevel(subsystemID, logLevel)
 	}
 }
+
+func init() {
+	wd, err := os.Getwd()
+	if err != nil {
+		wd = "./.abelian/sdk.log"
+	}
+	logDir := fmt.Sprintf("%s/.abelian", wd)
+	err = os.MkdirAll(logDir, 0777)
+	if err != nil {
+		wd = "."
+	}
+	initLogRotator(fmt.Sprintf("%s/sdk.log", wd))
+	setLogLevels("info")
+}
