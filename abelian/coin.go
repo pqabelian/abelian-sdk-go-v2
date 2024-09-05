@@ -26,7 +26,7 @@ type Coin struct {
 	TxID         string
 	Index        uint8
 	BlockHash    string
-	BlockHeight  int32
+	BlockHeight  int64
 	Value        int64
 	SerialNumber string
 	TxVoutData   []byte
@@ -43,7 +43,7 @@ func NewCoin(
 	txID string,
 	index uint8,
 	blockHash string,
-	blockHeight int32,
+	blockHeight int64,
 	value int64,
 	serialNumber string,
 	txVoutData []byte,

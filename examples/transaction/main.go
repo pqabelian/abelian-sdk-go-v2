@@ -126,7 +126,7 @@ func main() {
 
 	// Build TxInDesc
 	txInDescs := []*abelian.TxInDesc{}
-	blockGroups := map[int32]*abelian.TxBlockDesc{}
+	blockGroups := map[int64]*abelian.TxBlockDesc{}
 	coin2AccountID := map[string]int64{}
 	for _, coin := range selectedCoins {
 		txInDescs = append(txInDescs, &abelian.TxInDesc{

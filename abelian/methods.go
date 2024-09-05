@@ -11,7 +11,7 @@ func (client *Client) GetRawMempool() (res []string, err error) {
 	err = client.Do("getrawmempool", []interface{}{false}, &res)
 	return res, err
 }
-func (client *Client) GetBlockHash(height int32) (res string, err error) {
+func (client *Client) GetBlockHash(height int64) (res string, err error) {
 	err = client.Do("getblockhash", []interface{}{height}, &res)
 	return res, err
 }
@@ -42,7 +42,7 @@ func (client *Client) GetRawTx(txID string) (res *Tx, err error) {
 	return res, err
 }
 
-func (client *Client) GetBlockByHeight(height int32) (res *Block, err error) {
+func (client *Client) GetBlockByHeight(height int64) (res *Block, err error) {
 	blockID, err := client.GetBlockHash(height)
 	if err != nil {
 		return nil, err
@@ -51,17 +51,13 @@ func (client *Client) GetBlockByHeight(height int32) (res *Block, err error) {
 	return client.GetBlock(blockID)
 }
 
-func (client *Client) GetBlockBytesByHeight(height int32) (res []byte, err error) {
+func (client *Client) GetBlockBytesByHeight(height int64) (res []byte, err error) {
 	blockID, err := client.GetBlockHash(height)
 	if err != nil {
 		return nil, err
 	}
 
-	blockHex, err := client.GetBlockBytes(blockID)
-	if err != nil {
-		return nil, err
-	}
-	return hex.DecodeString(blockHex)
+	return client.GetBlockBytes(blockID)
 }
 
 func (client *Client) SendRawTx(rawTx string) (res string, err error) {

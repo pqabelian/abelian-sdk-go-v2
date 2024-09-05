@@ -8,7 +8,7 @@ import (
 	"github.com/pqabelian/abelian-sdk-go-v2/examples/database"
 )
 
-func ScanCoins(viewAccounts []*database.ViewAccount, tx *abelian.Tx, isCoinbaseTx bool, blockID string, blockHeight int32) error {
+func ScanCoins(viewAccounts []*database.ViewAccount, tx *abelian.Tx, isCoinbaseTx bool, blockID string, blockHeight int64) error {
 	for index := 0; index < len(tx.Vout); index++ {
 		txOutData, err := hex.DecodeString(tx.Vout[index].Script)
 		if err != nil {
@@ -64,7 +64,7 @@ func TrackCoins(tx *abelian.Tx) error {
 	return nil
 }
 
-func HandleCoinMaturity(height int32) error {
+func HandleCoinMaturity(height int64) error {
 	// handle coinbase coin maturity
 	fmt.Printf("handle coinbase maturity in block with height %d \n", height)
 	immatureCoinbaseCoins, err := database.LoadImmatureCoinbaseCoins(height - abelian.GetCoinbaseMaturity())
@@ -80,7 +80,7 @@ func HandleCoinMaturity(height int32) error {
 	}
 
 	// handle transfer coins maturity
-	blockNum := int32(abelian.GetBlockNumPerRingGroupByBlockHeight(height))
+	blockNum := int64(abelian.GetBlockNumPerRingGroupByBlockHeight(height))
 	if height%blockNum != blockNum-1 {
 		return nil
 	}

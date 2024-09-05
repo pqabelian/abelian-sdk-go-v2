@@ -17,7 +17,7 @@ func InsertCoin(
 	txID string,
 	index uint8,
 	blockHash string,
-	blockHeight int32,
+	blockHeight int64,
 	value int64,
 	isCoinbase bool,
 	data []byte) (int64, error) {
@@ -56,7 +56,7 @@ func InsertCoin(
 	}
 	return result.LastInsertId()
 }
-func LoadImmatureCoinbaseCoins(height int32) ([]*Coin, error) {
+func LoadImmatureCoinbaseCoins(height int64) ([]*Coin, error) {
 	rows, err := db.Query(`
 SELECT ID,account_id,transaction_id,output_index,coin_value,block_id ,block_height 
 FROM coin  
@@ -75,7 +75,7 @@ WHERE is_coinbase=True AND status = 0 AND block_height < ?`, height)
 		var outputIndex uint8
 		var value int64
 		var blockID string
-		var blockHeight int32
+		var blockHeight int64
 
 		err = rows.Scan(&id,
 			&id,
@@ -98,7 +98,7 @@ WHERE is_coinbase=True AND status = 0 AND block_height < ?`, height)
 	return coins, err
 }
 
-func LoadImmatureCoins(height int32) ([]*Coin, error) {
+func LoadImmatureCoins(height int64) ([]*Coin, error) {
 	rows, err := db.Query(`
 SELECT ID,account_id,transaction_id,output_index,coin_value,block_id ,block_height 
 FROM coin  
@@ -117,7 +117,7 @@ WHERE status = 0 AND block_height <= ?`, height)
 		var outputIndex uint8
 		var value int64
 		var blockID string
-		var blockHeight int32
+		var blockHeight int64
 
 		err = rows.Scan(
 			&id,
@@ -157,7 +157,7 @@ func LoadCoinByAccountID(id int64) ([]*Coin, error) {
 		var outputIndex uint8
 		var value int64
 		var blockID string
-		var blockHeight int32
+		var blockHeight int64
 		var data []byte
 
 		err = rows.Scan(
@@ -201,7 +201,7 @@ WHERE serial_number = ?`, serialNumber)
 		var outputIndex uint8
 		var value int64
 		var blockID string
-		var blockHeight int32
+		var blockHeight int64
 
 		err = rows.Scan(
 			&id,

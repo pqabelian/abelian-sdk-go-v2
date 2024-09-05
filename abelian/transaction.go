@@ -9,7 +9,7 @@ import (
 )
 
 type TxInDesc struct {
-	BlockHeight      int32
+	BlockHeight      int64
 	BlockID          string
 	TxVersion        uint32
 	TxID             string
@@ -62,10 +62,10 @@ type TxDesc struct {
 	TxOutDescs       []*TxOutDesc
 	TxFee            int64
 	TxMemo           []byte
-	TxRingBlockDescs map[int32]*TxBlockDesc
+	TxRingBlockDescs map[int64]*TxBlockDesc
 }
 
-func NewTxDesc(txInDescs []*TxInDesc, txOutDescs []*TxOutDesc, txFee int64, txRingBlockDescs map[int32]*TxBlockDesc) *TxDesc {
+func NewTxDesc(txInDescs []*TxInDesc, txOutDescs []*TxOutDesc, txFee int64, txRingBlockDescs map[int64]*TxBlockDesc) *TxDesc {
 	return &TxDesc{
 		TxInDescs:        txInDescs,
 		TxOutDescs:       txOutDescs,
@@ -80,10 +80,10 @@ type UnsignedRawTx struct {
 
 type TxBlockDesc struct {
 	BinData []byte
-	Height  int32
+	Height  int64
 }
 
-func NewTxBlockDesc(binData []byte, height int32) *TxBlockDesc {
+func NewTxBlockDesc(binData []byte, height int64) *TxBlockDesc {
 	return &TxBlockDesc{
 		BinData: binData,
 		Height:  height,
@@ -207,8 +207,8 @@ func GenerateSignedRawTx(unsignedRawTx *UnsignedRawTx, signerAccounts []Account)
 		TxID: txid.String(),
 	}, nil
 }
-func getSerializedBlocksForRingGroup(ringBlockDescs map[int32]*TxBlockDesc) [][]byte {
-	heights := make([]int32, 0, len(ringBlockDescs))
+func getSerializedBlocksForRingGroup(ringBlockDescs map[int64]*TxBlockDesc) [][]byte {
+	heights := make([]int64, 0, len(ringBlockDescs))
 	for height := range ringBlockDescs {
 		heights = append(heights, height)
 	}

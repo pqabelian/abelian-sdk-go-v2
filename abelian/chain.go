@@ -36,35 +36,35 @@ var NetName2NetID = map[string]NetworkID{
 	"simnet":        SimNet,
 }
 
-func GetTxoRingSizeByBlockHeight(height int32) uint8 {
-	return api.GetTxoRingSizeByBlockHeight(height)
+func GetTxoRingSizeByBlockHeight(height int64) uint8 {
+	return api.GetTxoRingSizeByBlockHeight(int32(height))
 }
 
-func GetBlockNumPerRingGroupByBlockHeight(height int32) uint8 {
-	return api.GetBlockNumPerRingGroupByBlockHeight(height)
+func GetBlockNumPerRingGroupByBlockHeight(height int64) uint8 {
+	return api.GetBlockNumPerRingGroupByBlockHeight(int32(height))
 }
 
-func GetCoinbaseMaturity() int32 {
+func GetCoinbaseMaturity() int64 {
 	return 200
 }
 
-func GetRingBlockHeights(height int32) []int32 {
+func GetRingBlockHeights(height int64) []int64 {
 	blockNumPerGroup := GetBlockNumPerRingGroupByBlockHeight(height)
-	firstRingBlockHeight := height - height%int32(blockNumPerGroup)
+	firstRingBlockHeight := height - height%int64(blockNumPerGroup)
 
-	ringBlockHeights := make([]int32, 0, blockNumPerGroup)
-	for i := int32(0); i < int32(blockNumPerGroup); i++ {
+	ringBlockHeights := make([]int64, 0, blockNumPerGroup)
+	for i := int64(0); i < int64(blockNumPerGroup); i++ {
 		ringBlockHeights = append(ringBlockHeights, firstRingBlockHeight+i)
 	}
 	return ringBlockHeights
 }
 
-func GetRingBlockGroupByHeight(client *Client, height int32) ([][]byte, error) {
+func GetRingBlockGroupByHeight(client *Client, height int64) ([][]byte, error) {
 	blockNumPerGroup := GetBlockNumPerRingGroupByBlockHeight(height)
-	firstRingBlockHeight := height - height%int32(blockNumPerGroup)
+	firstRingBlockHeight := height - height%int64(blockNumPerGroup)
 
 	serializedBlockGroups := make([][]byte, 0, blockNumPerGroup)
-	for i := int32(0); i < int32(blockNumPerGroup); i++ {
+	for i := int64(0); i < int64(blockNumPerGroup); i++ {
 		blockBytes, err := client.GetBlockBytesByHeight(firstRingBlockHeight + i)
 		if err != nil {
 			return nil, fmt.Errorf("fail to get block group: %v", err)

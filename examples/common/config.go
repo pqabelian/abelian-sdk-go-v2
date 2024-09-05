@@ -16,12 +16,12 @@ type Config struct {
 		Password string `json:"password"`
 	} `json:"rpc"`
 	CoinScan struct {
-		StartHeight int32 `json:"start_height"`
-		EndHeight   int32 `json:"end_height"`
+		StartHeight int64 `json:"start_height"`
+		EndHeight   int64 `json:"end_height"`
 	} `json:"coin_scan"`
 	TxTrack struct {
-		StartHeight int32 `json:"start_height"`
-		EndHeight   int32 `json:"end_height"`
+		StartHeight int64 `json:"start_height"`
+		EndHeight   int64 `json:"end_height"`
 	} `json:"tx_track"`
 }
 
@@ -68,15 +68,15 @@ func GetNetworkID() abelian.NetworkID {
 func GetDBFileName() string {
 	return config.DBFileName
 }
-func GetCoinScanStartHeight() int32 {
+func GetCoinScanStartHeight() int64 {
 	return config.CoinScan.StartHeight
 }
-func GetCoinScanEndHeight() int32 {
+func GetCoinScanEndHeight() int64 {
 	return config.CoinScan.EndHeight
 }
-func GetTxTrackStartHeight() int32 {
+func GetTxTrackStartHeight() int64 {
 	return config.TxTrack.StartHeight
 }
-func GetTxTrackEndHeight() int32 {
+func GetTxTrackEndHeight() int64 {
 	return config.TxTrack.EndHeight
 }

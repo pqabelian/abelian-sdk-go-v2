@@ -36,7 +36,7 @@ type ChainInfo struct {
 }
 
 type Block struct {
-	Height        int32    `json:"height"`
+	Height        int64    `json:"height"`
 	Confirmations int64    `json:"confirmations"`
 	Version       int64    `json:"version"`
 	VersionHex    string   `json:"versionHex"`
