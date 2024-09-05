@@ -79,8 +79,8 @@ func init() {
 	logDir := fmt.Sprintf("%s/.abelian", wd)
 	err = os.MkdirAll(logDir, 0777)
 	if err != nil {
-		wd = "."
+		logDir = "."
 	}
-	initLogRotator(fmt.Sprintf("%s/sdk.log", wd))
+	initLogRotator(fmt.Sprintf("%s/sdk.log", logDir))
 	setLogLevels("info")
 }
