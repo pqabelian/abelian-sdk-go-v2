@@ -19,14 +19,22 @@ func (client *Client) GetBlock(blockID string) (res *Block, err error) {
 	err = client.Do("getblockabe", []interface{}{blockID, 1}, &res)
 	return res, err
 }
-func (client *Client) GetBlockBytes(blockID string) (res string, err error) {
-	err = client.Do("getblockabe", []interface{}{blockID, 0}, &res)
-	return res, err
+func (client *Client) GetBlockBytes(blockID string) (res []byte, err error) {
+	var blockHex string
+	err = client.Do("getblockabe", []interface{}{blockID, 0}, &blockHex)
+	if err != nil {
+		return nil, err
+	}
+	return hex.DecodeString(blockHex)
 }
 
 func (client *Client) GetTxBytes(txID string) (res []byte, err error) {
-	err = client.Do("getrawtransaction", []interface{}{txID, false}, &res)
-	return res, err
+	var txHex string
+	err = client.Do("getrawtransaction", []interface{}{txID, false}, &txHex)
+	if err != nil {
+		return nil, err
+	}
+	return hex.DecodeString(txHex)
 }
 
 func (client *Client) GetRawTx(txID string) (res *Tx, err error) {
