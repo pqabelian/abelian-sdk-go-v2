@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"github.com/pqabelian/abelian-sdk-go-v2/abelian"
@@ -53,7 +54,7 @@ func TrackCoins(tx *abelian.Tx) error {
 					}
 
 					fmt.Printf("💸 Coin of account with account id %d is consumed: block id %s, block height %d, transacion id %s, index %d, value %v ABELs\n",
-						coin.ID, coin.BlockHash, coin.BlockHeight, tx.TxHash, index, abelian.NeutrinoToAbel(coin.Value))
+						coin.AccountID, coin.BlockHash, coin.BlockHeight, tx.TxHash, index, abelian.NeutrinoToAbel(coin.Value))
 
 					break
 				}
@@ -63,7 +64,26 @@ func TrackCoins(tx *abelian.Tx) error {
 	}
 	return nil
 }
+func BuildCoinRingsWithBlockHeight(height int64) (map[abelian.CoinID]*abelian.CoinRing, error) {
+	serializedBlockGroups, err := abelian.GetRingBlockGroupByHeight(client, height)
+	if err != nil {
+		return nil, fmt.Errorf("fail to get block group with height %d: %v", height, err)
+	}
 
+	coinIDRings, err := abelian.BuildCoinRings(serializedBlockGroups)
+	if err != nil {
+		return nil, fmt.Errorf("fail to build txo rings with height %d: %v", height, err)
+	}
+	// build mapping: coin id -> ring
+	coinID2RingDetail := map[abelian.CoinID]*abelian.CoinRing{}
+	for i := 0; i < len(coinIDRings); i++ {
+		ring := coinIDRings[i]
+		for j := 0; j < len(ring.CoinIDRing.CoinIDs); j++ {
+			coinID2RingDetail[*ring.CoinIDRing.CoinIDs[j]] = ring
+		}
+	}
+	return coinID2RingDetail, nil
+}
 func HandleCoinMaturity(height int64) error {
 	// handle coinbase coin maturity
 	fmt.Printf("handle coinbase maturity in block with height %d \n", height)
@@ -73,7 +93,7 @@ func HandleCoinMaturity(height int64) error {
 	}
 	for _, coin := range immatureCoinbaseCoins {
 		fmt.Printf("🎉 coinbase coin (%s,%d) %v ABELs is mature\n", coin.TxID, coin.Index, abelian.NeutrinoToAbel(coin.Value))
-		err = database.MaturesCoin(coin.ID)
+		err = database.MatureCoin(coin.ID)
 		if err != nil {
 			panic(fmt.Errorf("fail to mature immature coinbase coins"))
 		}
@@ -85,40 +105,95 @@ func HandleCoinMaturity(height int64) error {
 		return nil
 	}
 	fmt.Printf("handle transfer maturity in block with height %d \n", height)
-	// in this point, some coin would be mature
+
+	// NOTE: the height that meets the above conditions should mature some coins, here show for specified height
+	// how to handle maturity with ring
+	coinID2CoinRing, err := BuildCoinRingsWithBlockHeight(height)
+	if err != nil {
+		return err
+	}
+
+	// in this point, some coins would be mature
 	immatureCoins, err := database.LoadImmatureCoins(height)
 	if err != nil {
 		panic(fmt.Errorf("fail to load immature coins from database"))
 	}
 	for i := 0; i < len(immatureCoins); i++ {
 		coin := immatureCoins[i]
-		viewAccount, _ := database.LoadViewAccount(coin.AccountID)
-		serializedBlockGroups, err := abelian.GetRingBlockGroupByHeight(client, coin.BlockHeight)
+		coinID := coin.Coin.ID()
+		// Before mark coin mature, build rings from blocks ith height
+		coinRing, ok := coinID2CoinRing[*coinID]
+		if !ok {
+			return fmt.Errorf("can not found ring detail for coin (%s)", coinID.String())
+		}
+
+		ringIndex := 0
+		for ; ringIndex < len(coinRing.CoinIDRing.CoinIDs); ringIndex++ {
+			if coinRing.CoinIDRing.CoinIDs[ringIndex].TxID == coinID.TxID &&
+				coinRing.CoinIDRing.CoinIDs[ringIndex].Index == coinID.Index {
+				break
+			}
+		}
+
+		ringId, err := coinRing.RingId()
 		if err != nil {
 			panic(err)
 		}
-		serialNumber, err := viewAccount.GenerateSerialNumberWithBlocks(
+		coin.Coin.SetRingInfo(ringId, uint8(ringIndex))
+
+		// generate serial number
+		w := bytes.Buffer{}
+		err = coinRing.Serialize(&w)
+		if err != nil {
+			panic(err)
+		}
+		serializedRing := w.Bytes()
+		viewAccount, _ := database.LoadViewAccount(coin.AccountID)
+		serialNumber, err := viewAccount.GenerateSerialNumberWithRing(
 			&abelian.CoinID{
 				TxID:  coin.TxID,
 				Index: coin.Index,
 			},
-			serializedBlockGroups)
+			serializedRing)
 		if err != nil {
 			panic(err)
 		}
 
-		// update serial number of coin
-		err = database.UpdateSerialNumber(coin.ID, hex.EncodeToString(serialNumber))
+		// update the coin info
+		err = database.UpdateCoinInfo(coin.ID, ringId, uint8(ringIndex), hex.EncodeToString(serialNumber))
+		if err != nil {
+			panic(fmt.Errorf("fail to update coins"))
+		}
+
+		// insert relevant coins which would be used when generating transaction to consume matured coins
+		for j := 0; j < len(coinRing.CoinIDRing.CoinIDs); j++ {
+			relevantCoinID := coinRing.CoinIDRing.CoinIDs[j]
+			relevantSerializedTXO := coinRing.SerializedTxOuts[j]
+			_, err = database.InsertRelevantCoin(0, coin.TxVersion, relevantCoinID.TxID, relevantCoinID.Index, "", 0, -1, coinRing.IsCoinbase, relevantSerializedTXO, ringId, uint8(j))
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		// insert ring which would be used when generating transaction to consume matured coins
+		_, err = database.InsertRing(
+			ringId,
+			coinRing.Version,
+			int64(coinRing.RingBlockHeight),
+			coinRing.CoinIDRing.BlockIDs,
+			int8(len(coinRing.CoinIDRing.CoinIDs)),
+			coinRing.IsCoinbase)
 		if err != nil {
 			panic(err)
 		}
+		fmt.Printf("📢 Ring related for coin (%s,%d) %v ABELs is inserted\n", coin.TxID, coin.Index, abelian.NeutrinoToAbel(coin.Value))
 
-		// meanwhile, mark the coin mature
-		err = database.MaturesCoin(coin.ID)
+		// lastly mark coin as mature
+		err = database.MatureCoin(coin.ID)
 		if err != nil {
-			panic(fmt.Errorf("fail to mature immature coinbase coins"))
+			panic(fmt.Errorf("fail to mature immature coins"))
 		}
-		fmt.Printf("🎉 transfer coin (%s,%d) %v ABELs is mature\n", coin.TxID, coin.Index, abelian.NeutrinoToAbel(coin.Value))
+		fmt.Printf("🎉 transfer coin (%s,%d) %v ABELs mature with ring info (%s,%d) \n", coin.TxID, coin.Index, abelian.NeutrinoToAbel(coin.Value), ringId, ringIndex)
 	}
 
 	return nil

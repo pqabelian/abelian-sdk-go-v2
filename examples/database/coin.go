@@ -5,9 +5,10 @@ import (
 )
 
 type Coin struct {
-	ID        int64
-	AccountID int64
-	Status    int // 0-immature 1-spendable 2-spent 3-confirmed 4-invalid
+	ID         int64
+	AccountID  int64
+	Status     int // 0-immature 1-spendable 2-spent 3-confirmed 4-invalid
+	IsCoinbase bool
 	*abelian.Coin
 }
 
@@ -56,11 +57,62 @@ func InsertCoin(
 	}
 	return result.LastInsertId()
 }
+
+func InsertRelevantCoin(
+	accountID int64,
+	txVersion uint32,
+	txID string,
+	index uint8,
+	blockHash string,
+	blockHeight int64,
+	value int64,
+	isCoinbase bool,
+	data []byte,
+	ringID string,
+	ringIndex uint8) (int64, error) {
+	// check exist firstly
+	exist, err := db.Query(`SELECT id FROM coin WHERE transaction_id = ? AND output_index = ?`, txID, index)
+	if err != nil {
+		return -1, err
+	}
+	defer exist.Close()
+	if exist.Next() {
+		var id int64
+		err := exist.Scan(&id)
+		if err != nil {
+			return -1, err
+		}
+		return id, err
+	}
+	stmt, err := db.Prepare(`INSERT INTO coin (account_id,transaction_version,transaction_id,output_index ,coin_value,block_id ,block_height ,is_coinbase,status,data,ring_id,ring_index) 
+									VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`)
+	if err != nil {
+		return -1, err
+	}
+	result, err := stmt.Exec(
+		accountID,
+		txVersion,
+		txID,
+		index,
+		value,
+		blockHash,
+		blockHeight,
+		isCoinbase,
+		0,
+		data,
+		ringID,
+		ringIndex,
+	)
+	if err != nil {
+		return -1, err
+	}
+	return result.LastInsertId()
+}
 func LoadImmatureCoinbaseCoins(height int64) ([]*Coin, error) {
 	rows, err := db.Query(`
 SELECT ID,account_id,transaction_id,output_index,coin_value,block_id ,block_height 
 FROM coin  
-WHERE is_coinbase=True AND status = 0 AND block_height < ?`, height)
+WHERE account_id !=0 AND is_coinbase=True AND status = 0 AND block_height < ?`, height)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +154,7 @@ func LoadImmatureCoins(height int64) ([]*Coin, error) {
 	rows, err := db.Query(`
 SELECT ID,account_id,transaction_id,output_index,coin_value,block_id ,block_height 
 FROM coin  
-WHERE status = 0 AND block_height <= ?`, height)
+WHERE account_id != 0 AND status = 0 AND block_height <= ?`, height)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +192,7 @@ WHERE status = 0 AND block_height <= ?`, height)
 	return coins, nil
 }
 func LoadCoinByAccountID(id int64) ([]*Coin, error) {
-	rows, err := db.Query(`SELECT ID,account_id,transaction_version,transaction_id,output_index,coin_value,block_id ,block_height, data
+	rows, err := db.Query(`SELECT ID,account_id,transaction_version,transaction_id,output_index,coin_value,block_id ,block_height, data,ring_id,ring_index
 								 FROM coin  
 								WHERE account_id = ? AND status = 1`, id)
 	if err != nil {
@@ -159,6 +211,8 @@ func LoadCoinByAccountID(id int64) ([]*Coin, error) {
 		var blockID string
 		var blockHeight int64
 		var data []byte
+		var ringID string
+		var ringIndex uint8
 
 		err = rows.Scan(
 			&ID,
@@ -169,15 +223,20 @@ func LoadCoinByAccountID(id int64) ([]*Coin, error) {
 			&value,
 			&blockID,
 			&blockHeight,
-			&data)
+			&data,
+			&ringID,
+			&ringIndex,
+		)
 		if err != nil {
 			return nil, err
 		}
+		abelianCoin := abelian.NewCoin(txVersion, txID, outputIndex,
+			blockID, blockHeight, value, "", data)
+		abelianCoin.SetRingInfo(ringID, ringIndex)
 		coins = append(coins, &Coin{
 			ID:        id,
 			AccountID: accountID,
-			Coin: abelian.NewCoin(txVersion, txID, outputIndex,
-				blockID, blockHeight, value, "", data),
+			Coin:      abelianCoin,
 		})
 	}
 	return coins, err
@@ -186,7 +245,7 @@ func LoadCoinBySerialNumber(serialNumber string) ([]*Coin, error) {
 	rows, err := db.Query(`
 SELECT ID,account_id,transaction_id,output_index,coin_value,block_id ,block_height 
 FROM coin  
-WHERE serial_number = ?`, serialNumber)
+WHERE account_id!=0 AND serial_number = ?`, serialNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -224,12 +283,69 @@ WHERE serial_number = ?`, serialNumber)
 	return coins, err
 }
 
-func UpdateSerialNumber(id int64, serialNumber string) error {
-	stmt, err := db.Prepare("UPDATE coin SET serial_number = ? WHERE id = ?")
+func loadCoinByRingID(ringID string) ([]*Coin, error) {
+	rows, err := db.Query(`SELECT ID,account_id,is_coinbase,transaction_version,transaction_id,output_index,coin_value,block_id ,block_height, data,ring_id,ring_index
+								 FROM coin  
+								WHERE ring_id = ? AND status = 1
+								ORDER BY ring_index`, ringID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	coins := make([]*Coin, 0)
+	for rows.Next() {
+		var ID int64
+		var accountID int64
+		var isCoinbase bool
+		var txVersion uint32
+		var txID string
+		var outputIndex uint8
+		var value int64
+		var blockID string
+		var blockHeight int64
+		var data []byte
+		var ringID string
+		var ringIndex uint8
+
+		err = rows.Scan(
+			&ID,
+			&accountID,
+			&isCoinbase,
+			&txVersion,
+			&txID,
+			&outputIndex,
+			&value,
+			&blockID,
+			&blockHeight,
+			&data,
+			&ringID,
+			&ringIndex,
+		)
+		if err != nil {
+			return nil, err
+		}
+		abelianCoin := abelian.NewCoin(txVersion, txID, outputIndex,
+			blockID, blockHeight, value, "", data)
+		abelianCoin.SetRingInfo(ringID, ringIndex)
+		coins = append(coins, &Coin{
+			ID:         ID,
+			AccountID:  accountID,
+			IsCoinbase: isCoinbase,
+			Coin:       abelianCoin,
+		})
+	}
+	return coins, err
+}
+
+func UpdateCoinInfo(id int64, ringID string, ringIndex uint8, serialNumber string) error {
+	stmt, err := db.Prepare("UPDATE coin SET ring_id = ?, ring_index = ?, serial_number = ? WHERE id = ?")
 	if err != nil {
 		return err
 	}
 	_, err = stmt.Exec(
+		ringID,
+		ringIndex,
 		serialNumber,
 		id)
 	return err
@@ -246,7 +362,7 @@ func updateCoinStatus(id int64, status int) error {
 	return err
 }
 
-func MaturesCoin(id int64) error {
+func MatureCoin(id int64) error {
 	return updateCoinStatus(id, 1)
 }
 func SpendCoin(id int64) error {

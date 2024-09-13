@@ -317,7 +317,17 @@ func GenerateCoinSerialNumberByRootSeeds(
 	coinSerialNumberKeyRootSeed []byte) (serialNumbers [][]byte, err error) {
 	serialNumber, err := api.GenerateCoinSerialNumberByRootSeeds(outPoints, serializedBlocksForRingGroup, coinSerialNumberKeyRootSeed)
 	if err != nil {
-		log.Errorf("fail to generate serial number from version %d and data %v with root seeds", outPoints, serializedBlocksForRingGroup)
+		log.Errorf("fail to generate serial number using serialized blocks with root seeds")
+	}
+	return serialNumber, err
+}
+func GenerateCoinSerialNumberByRootSeedsWithRing(
+	outPoints []*OutPoint,
+	serializedRing []byte,
+	coinSerialNumberKeyRootSeed []byte) (serialNumbers [][]byte, err error) {
+	serialNumber, err := api.GenerateCoinSerialNumberByRootSeedsWithRing(outPoints, serializedRing, coinSerialNumberKeyRootSeed)
+	if err != nil {
+		log.Errorf("fail to generate serial number using serialized ring with root seeds")
 	}
 	return serialNumber, err
 }
@@ -325,7 +335,7 @@ func GenerateCoinSerialNumberByRootSeeds(
 func TxoCoinReceiveByKeys(txVersion uint32, serializedTxOut []byte, cryptoAddress []byte, cryptoValueSecretKey []byte) (bool, uint64, error) {
 	success, value, err := api.TxoCoinReceiveByKeys(txVersion, serializedTxOut, cryptoAddress, cryptoValueSecretKey)
 	if err != nil {
-		log.Errorf("fail to receive txo coin from version %d and data %v with keys", txVersion, serializedTxOut)
+		log.Errorf("fail to receive txo coin from version %d with keys", txVersion)
 	}
 	return success, value, err
 }
@@ -335,7 +345,16 @@ func GenerateCoinSerialNumberByKeys(outPoints []*OutPoint,
 	cryptoSnsks [][]byte) (serialNumbers [][]byte, err error) {
 	serialNumber, err := api.GenerateCoinSerialNumberByKeys(outPoints, serializedBlocksForRingGroup, cryptoSnsks)
 	if err != nil {
-		log.Errorf("fail to generate serial number from version %d and data %v with keys", outPoints, serializedBlocksForRingGroup)
+		log.Errorf("fail to generate serial number using serialized blocks with keys")
+	}
+	return serialNumber, err
+}
+func GenerateCoinSerialNumberByKeysWithRing(outPoints []*OutPoint,
+	serializedRing []byte,
+	cryptoSnsks [][]byte) (serialNumbers [][]byte, err error) {
+	serialNumber, err := api.GenerateCoinSerialNumberByKeysWithRing(outPoints, serializedRing, cryptoSnsks)
+	if err != nil {
+		log.Errorf("fail to generate serial number using serialized ring with keys")
 	}
 	return serialNumber, err
 }

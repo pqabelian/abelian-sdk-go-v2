@@ -30,6 +30,8 @@ type Coin struct {
 	Value        int64
 	SerialNumber string
 	TxVoutData   []byte
+	RingID       string
+	RingIndex    uint8
 }
 
 func (coin *Coin) ID() *CoinID {
@@ -37,6 +39,10 @@ func (coin *Coin) ID() *CoinID {
 		TxID:  coin.TxID,
 		Index: coin.Index,
 	}
+}
+func (coin *Coin) SetRingInfo(ringID string, ringIndex uint8) {
+	coin.RingID = ringID
+	coin.RingIndex = ringIndex
 }
 func NewCoin(
 	txVersion uint32,

@@ -1,10 +1,11 @@
 package abelian
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/pqabelian/abec/abecryptox/abecryptoxkey"
 	api "github.com/pqabelian/abec/sdkapi/v2"
 	"github.com/pqabelian/abelian-sdk-go-v2/abelian/crypto"
+	"io"
 	"sort"
 )
 
@@ -33,7 +34,7 @@ func SortTxInDescs(txIndescs []*TxInDesc) error {
 	sort.SliceStable(txIndescs, func(i, j int) bool {
 		coinAddressIPrivacyLevel, _ := crypto.GetTxoPrivacyLevel(txIndescs[i].TxVersion, txIndescs[i].TxOutData)
 		coinAddressJPrivacyLevel, _ := crypto.GetTxoPrivacyLevel(txIndescs[j].TxVersion, txIndescs[j].TxOutData)
-		if coinAddressIPrivacyLevel != abecryptoxkey.PrivacyLevelPSEUDONYM && coinAddressJPrivacyLevel == abecryptoxkey.PrivacyLevelPSEUDONYM {
+		if coinAddressIPrivacyLevel != crypto.PrivacyLevelPseudonym && coinAddressJPrivacyLevel == crypto.PrivacyLevelPseudonym {
 			return true
 		}
 		return false
@@ -48,8 +49,8 @@ type TxOutDesc struct {
 
 func SortTxOutDesc(txOutdescs []*TxOutDesc) error {
 	sort.SliceStable(txOutdescs, func(i, j int) bool {
-		if txOutdescs[i].AbelAddress.GetCryptoAddress().GetPrivacyLevel() != abecryptoxkey.PrivacyLevelPSEUDONYM &&
-			txOutdescs[j].AbelAddress.GetCryptoAddress().GetPrivacyLevel() == abecryptoxkey.PrivacyLevelPSEUDONYM {
+		if txOutdescs[i].AbelAddress.GetCryptoAddress().GetPrivacyLevel() != crypto.PrivacyLevelPseudonym &&
+			txOutdescs[j].AbelAddress.GetCryptoAddress().GetPrivacyLevel() == crypto.PrivacyLevelPseudonym {
 			return true
 		}
 		return false
@@ -64,6 +65,116 @@ type TxDesc struct {
 	TxMemo           []byte
 	TxRingBlockDescs map[int64]*TxBlockDesc
 }
+type CoinRing struct {
+	Version          uint32
+	RingBlockHeight  int32
+	CoinIDRing       *CoinIDRing
+	SerializedTxOuts [][]byte
+	IsCoinbase       bool
+}
+
+func (ring *CoinRing) Serialize(w io.Writer) error {
+	apiTxoRing, err := coinRing2ApiTxoRing(ring)
+	if err != nil {
+		return err
+	}
+	return apiTxoRing.Serialize(w)
+}
+
+func (ring *CoinRing) RingId() (string, error) {
+	apiTxoRing, err := coinRing2ApiTxoRing(ring)
+	if err != nil {
+		return "", err
+	}
+	return apiTxoRing.RingId()
+}
+func apiTxoRing2CoinRing(apiTxoRing *api.TxoRing) (*CoinRing, error) {
+	coinIDRing, err := outPointRing2CoinIDRing(apiTxoRing.OutPointRing)
+	if err != nil {
+		return nil, err
+	}
+	coinRing := &CoinRing{
+		Version:          apiTxoRing.Version,
+		RingBlockHeight:  apiTxoRing.RingBlockHeight,
+		CoinIDRing:       coinIDRing,
+		SerializedTxOuts: apiTxoRing.SerializedTxOuts,
+		IsCoinbase:       apiTxoRing.IsCoinbase,
+	}
+	return coinRing, nil
+}
+
+func coinRing2ApiTxoRing(coinRing *CoinRing) (*api.TxoRing, error) {
+	coinIDRing, err := coinIDRing2OutPointRing(coinRing.CoinIDRing)
+	if err != nil {
+		return nil, err
+	}
+	apiTxoRing := &api.TxoRing{
+		Version:          coinRing.Version,
+		RingBlockHeight:  coinRing.RingBlockHeight,
+		OutPointRing:     coinIDRing,
+		SerializedTxOuts: coinRing.SerializedTxOuts,
+		IsCoinbase:       coinRing.IsCoinbase,
+	}
+	return apiTxoRing, nil
+}
+
+func NewCoinRing(ringVersion uint32, ringBlockHeight int64, blockIDs []string, coins []*CoinID, serializedTxOuts [][]byte, fromCoinbase bool) (*CoinRing, error) {
+	if len(coins) == 0 {
+		return nil, fmt.Errorf("no coins")
+	}
+	return &CoinRing{
+		Version:         ringVersion,
+		RingBlockHeight: int32(ringBlockHeight),
+		CoinIDRing: &CoinIDRing{
+			Version:  ringVersion,
+			BlockIDs: blockIDs,
+			CoinIDs:  coins,
+		},
+		SerializedTxOuts: serializedTxOuts,
+		IsCoinbase:       fromCoinbase,
+	}, nil
+}
+
+type TxInDescWithRing struct {
+	BlockHeight      int64
+	BlockID          string
+	TxVersion        uint32
+	TxID             string
+	TxOutIndex       uint8
+	TxOutData        []byte
+	CoinValue        int64
+	CoinSerialNumber []byte
+	TxoRing          *CoinRing
+}
+
+func SortTxInDescWithRing(txIndescs []*TxInDescWithRing) error {
+	// check firstly
+	for i := 0; i < len(txIndescs); i++ {
+		_, err := crypto.GetTxoPrivacyLevel(txIndescs[i].TxVersion, txIndescs[i].TxOutData)
+		if err != nil {
+			sdkLog.Errorf("SortTxInDescs: %v", err)
+			return err
+		}
+	}
+
+	// sort
+	sort.SliceStable(txIndescs, func(i, j int) bool {
+		coinAddressIPrivacyLevel, _ := crypto.GetTxoPrivacyLevel(txIndescs[i].TxVersion, txIndescs[i].TxOutData)
+		coinAddressJPrivacyLevel, _ := crypto.GetTxoPrivacyLevel(txIndescs[j].TxVersion, txIndescs[j].TxOutData)
+		if coinAddressIPrivacyLevel != crypto.PrivacyLevelPseudonym && coinAddressJPrivacyLevel == crypto.PrivacyLevelPseudonym {
+			return true
+		}
+		return false
+	})
+	return nil
+}
+
+type TxDescWithRing struct {
+	TxInDescs  []*TxInDescWithRing
+	TxOutDescs []*TxOutDesc
+	TxFee      int64
+	TxMemo     []byte
+}
 
 func NewTxDesc(txInDescs []*TxInDesc, txOutDescs []*TxOutDesc, txFee int64, txRingBlockDescs map[int64]*TxBlockDesc) *TxDesc {
 	return &TxDesc{
@@ -71,6 +182,13 @@ func NewTxDesc(txInDescs []*TxInDesc, txOutDescs []*TxOutDesc, txFee int64, txRi
 		TxOutDescs:       txOutDescs,
 		TxFee:            txFee,
 		TxRingBlockDescs: txRingBlockDescs,
+	}
+}
+func NewTxDescWithRing(txInDescs []*TxInDescWithRing, txOutDescs []*TxOutDesc, txFee int64) *TxDescWithRing {
+	return &TxDescWithRing{
+		TxInDescs:  txInDescs,
+		TxOutDescs: txOutDescs,
+		TxFee:      txFee,
 	}
 }
 
@@ -125,6 +243,65 @@ func GenerateUnsignedRawTx(txDesc *TxDesc) (*UnsignedRawTx, error) {
 	serializedTxRequestDesc, err := api.BuildTransferTxRequestDescFromBlocks(
 		outPointsToSpend,
 		serializedBlocksForRingGroup,
+		txRequestOutputDescs,
+		uint64(txDesc.TxFee),
+		txDesc.TxMemo,
+	)
+	if err != nil {
+		sdkLog.Errorf("fail to build tranasction request from blocks: %v", err)
+		return nil, err
+	}
+
+	return &UnsignedRawTx{
+		Data: serializedTxRequestDesc,
+	}, nil
+}
+
+// GenerateUnsignedRawTxWithRing make an unsigned transaction,
+// which can be signed with singer key by calling GenerateSignedRawTx
+func GenerateUnsignedRawTxWithRing(txDesc *TxDescWithRing) (*UnsignedRawTx, error) {
+	// Prepare outPointsToSpend and serializedTxoRings.
+	outPointsToSpend := make([]*api.OutPoint, 0, len(txDesc.TxInDescs))
+	serializedTxoRings := make([][]byte, 0, len(txDesc.TxInDescs))
+	for i := 0; i < len(txDesc.TxInDescs); i++ {
+		outPoint, err := api.NewOutPointFromTxIdStr(txDesc.TxInDescs[i].TxID, txDesc.TxInDescs[i].TxOutIndex)
+		if err != nil {
+			sdkLog.Errorf("fail to new outpoint in GenerateUnsignedRawTx with error %v", err)
+			return nil, err
+		}
+		outPointsToSpend = append(outPointsToSpend, outPoint)
+
+		// whether txo in corresponding ring
+		if txDesc.TxInDescs[i].TxoRing == nil {
+			sdkLog.Errorf("fail to found corresponding txo ring detail for outpoint in GenerateUnsignedRawTxWithRing")
+
+			return nil, fmt.Errorf("GenerateUnsignedRawTxWithRing: at least one of the input OutPoing can not find the corresponding TxoRing")
+		}
+
+		w := bytes.Buffer{}
+		err = txDesc.TxInDescs[i].TxoRing.Serialize(&w)
+		if err != nil {
+			sdkLog.Errorf("fail to serialized txo ring detail for outpoint in GenerateUnsignedRawTxWithRing")
+
+			return nil, fmt.Errorf("GenerateUnsignedRawTxWithRing: fail to serialized txo ring detail for outpoint in GenerateUnsignedRawTxWithRing")
+		}
+		serializedTxoRings = append(serializedTxoRings, w.Bytes())
+
+	}
+
+	// Prepare txRequestOutputDesc.
+	txRequestOutputDescs := make([]*api.TxRequestOutputDesc, 0, len(txDesc.TxOutDescs))
+	for i := 0; i < len(txDesc.TxOutDescs); i++ {
+		cryptoAddressData := txDesc.TxOutDescs[i].AbelAddress.GetCryptoAddress().Data()
+		coinValue := uint64(txDesc.TxOutDescs[i].CoinValue)
+		txRequestOutputDesc := api.NewTxRequestOutputDesc(cryptoAddressData, coinValue)
+		txRequestOutputDescs = append(txRequestOutputDescs, txRequestOutputDesc)
+	}
+
+	// Call API to build the serializedTxRequestDesc.
+	serializedTxRequestDesc, err := api.BuildTransferTxRequestDescFromTxoRings(
+		outPointsToSpend,
+		serializedTxoRings,
 		txRequestOutputDescs,
 		uint64(txDesc.TxFee),
 		txDesc.TxMemo,

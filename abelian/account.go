@@ -96,6 +96,9 @@ type ViewAccount interface {
 	ReceiveCoin(txVersion uint32, txOutData []byte) (success bool, v uint64, err error)
 	GenerateSerialNumberWithBlocks(coinID *CoinID, serializedBlocksForRingGroup [][]byte) (coinSerialNumbers []byte, err error)
 	GenerateSerialNumbersWithBlocks(coinIDs []*CoinID, serializedBlocksForRingGroup [][]byte) (coinSerialNumbers [][]byte, err error)
+
+	GenerateSerialNumberWithRing(coinID *CoinID, serializedRing []byte) (coinSerialNumbers []byte, err error)
+
 	ViewKeyMaterial() ([]byte, []byte, []byte)
 
 	AccountType() AccountType
@@ -150,8 +153,29 @@ func (account *RootSeedViewAccount) GenerateSerialNumberWithBlocks(coinID *CoinI
 		return nil, fmt.Errorf("fail to generate serial number with one coin id")
 	}
 	return serialNumbers[0], nil
-
 }
+func (account *RootSeedViewAccount) GenerateSerialNumberWithRing(coinID *CoinID, serializedRing []byte) ([]byte, error) {
+	if coinID == nil {
+		return nil, nil
+	}
+	outPoint, err := crypto.NewOutPointFromTxId(coinID.TxID, coinID.Index)
+	if err != nil {
+		return nil, err
+	}
+	outPoints := []*crypto.OutPoint{
+		outPoint,
+	}
+	// Call API to generate coin serial numbers.
+	serialNumbers, err := crypto.GenerateCoinSerialNumberByRootSeedsWithRing(outPoints, serializedRing, account.coinSerialNumberKeySeed)
+	if err != nil {
+		return nil, err
+	}
+	if len(serialNumbers) != 1 {
+		return nil, fmt.Errorf("fail to generate serial number with one coin id")
+	}
+	return serialNumbers[0], nil
+}
+
 func (account *RootSeedViewAccount) GenerateSerialNumbersWithBlocks(coinIDs []*CoinID, serializedBlocksForRingGroup [][]byte) ([][]byte, error) {
 	if len(coinIDs) == 0 {
 		return nil, nil
@@ -266,7 +290,6 @@ func (account *CryptoKeysViewAccount) GenerateSerialNumberWithBlocks(coinID *Coi
 		return nil, fmt.Errorf("fail to generate serial number with one coin id")
 	}
 	return serialNumbers[0], nil
-
 }
 
 func (account *CryptoKeysViewAccount) GenerateSerialNumbersWithBlocks(coinIDs []*CoinID, serializedBlocksForRingGroup [][]byte) ([][]byte, error) {
@@ -302,6 +325,32 @@ func (account *CryptoKeysViewAccount) GenerateSerialNumbersWithBlocks(coinIDs []
 	}
 
 	return coinSerialNumbers, nil
+}
+func (account *CryptoKeysViewAccount) GenerateSerialNumberWithRing(coinID *CoinID, serializedRing []byte) (coinSerialNumbers []byte, err error) {
+	if coinID == nil {
+		return nil, nil
+	}
+	outPoint, err := crypto.NewOutPointFromTxId(coinID.TxID, coinID.Index)
+	if err != nil {
+		return nil, err
+	}
+	outPoints := []*crypto.OutPoint{
+		outPoint,
+	}
+	cryptoSerialNumberSecretKeys := [][]byte{
+		account.serialNoSecretKey,
+	}
+
+	// Call API to generate coin serial numbers.
+	serialNumbers, err := crypto.GenerateCoinSerialNumberByKeysWithRing(outPoints, serializedRing, cryptoSerialNumberSecretKeys)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(serialNumbers) != 1 {
+		return nil, fmt.Errorf("fail to generate serial number with one coin id")
+	}
+	return serialNumbers[0], nil
 }
 
 func (account *CryptoKeysViewAccount) ReceiveCoin(txVersion uint32, txOutData []byte) (success bool, v uint64, err error) {

@@ -125,11 +125,25 @@ func main() {
 	}
 
 	// Build TxInDesc
-	txInDescs := []*abelian.TxInDesc{}
-	blockGroups := map[int64]*abelian.TxBlockDesc{}
+	txInDescs := []*abelian.TxInDescWithRing{}
 	coin2AccountID := map[string]int64{}
 	for _, coin := range selectedCoins {
-		txInDescs = append(txInDescs, &abelian.TxInDesc{
+		ring, err := database.LoadRing(coin.RingID)
+		if err != nil {
+			panic(err)
+		}
+		coinIDs := make([]*abelian.CoinID, len(ring.Coins))
+		serializedTxOuts := make([][]byte, len(ring.Coins))
+		for i := 0; i < len(ring.Coins); i++ {
+			coinIDs[i] = ring.Coins[i].ID()
+			serializedTxOuts[i] = ring.Coins[i].TxVoutData
+		}
+		ringDetail, err := abelian.NewCoinRing(ring.RingVersion, ring.RingHeight, ring.RingBlockIDs, coinIDs, serializedTxOuts, ring.IsCoinbase)
+		if err != nil {
+			panic(err)
+		}
+
+		txInDescs = append(txInDescs, &abelian.TxInDescWithRing{
 			BlockHeight: coin.BlockHeight,
 			BlockID:     coin.BlockHash,
 			TxVersion:   coin.TxVersion,
@@ -137,22 +151,13 @@ func main() {
 			TxOutIndex:  coin.Index,
 			TxOutData:   coin.TxVoutData,
 			CoinValue:   coin.Value,
+			TxoRing:     ringDetail,
 		})
-		blockHeights := abelian.GetRingBlockHeights(coin.BlockHeight)
-		for _, height := range blockHeights {
-			if _, ok := blockGroups[height]; !ok {
-				blockBytes, err := client.GetBlockBytesByHeight(height)
-				if err != nil {
-					panic(fmt.Errorf("fail to get block group: %v", err))
-				}
-				blockGroups[height] = abelian.NewTxBlockDesc(blockBytes, height)
-			}
-		}
 		coin2AccountID[coin.Coin.ID().String()] = coin.AccountID
 	}
 
 	// [IMPORTANT] Sort TxInDesc
-	err = abelian.SortTxInDescs(txInDescs)
+	err = abelian.SortTxInDescWithRing(txInDescs)
 	if err != nil {
 		panic(err)
 	}
@@ -189,8 +194,8 @@ func main() {
 	}
 
 	//  Make an unsigned transaction
-	txDesc := abelian.NewTxDesc(txInDescs, txOutDescs, estimatedTxFee, blockGroups)
-	unsignedRawTx, err := abelian.GenerateUnsignedRawTx(txDesc)
+	txDesc := abelian.NewTxDescWithRing(txInDescs, txOutDescs, estimatedTxFee)
+	unsignedRawTx, err := abelian.GenerateUnsignedRawTxWithRing(txDesc)
 	if err != nil {
 		panic(fmt.Errorf("fail to generate unsigned raw tx: %v", err))
 	}

@@ -74,7 +74,7 @@ func GetRingBlockGroupByHeight(client *Client, height int64) ([][]byte, error) {
 	return serializedBlockGroups, nil
 }
 
-func EstimateTxFee(txinDescs []*TxInDesc, txOutDescs []*TxOutDesc) int64 {
+func EstimateTxFee(txinDescs interface{}, txOutDescs []*TxOutDesc) int64 {
 	return 1_000_000
 }
 
@@ -84,4 +84,68 @@ func NeutrinoToAbel(neutrinoAmount int64) float64 {
 
 func AbelToNeutrino(abelAmount float64) int64 {
 	return int64(abelAmount * 1e7)
+}
+
+// CoinIDRing is the porting of wire.OutPointRing to avoid using specific concepts, but generalize them.
+type CoinIDRing struct {
+	Version  uint32
+	BlockIDs []string
+	CoinIDs  []*CoinID
+}
+
+func coinIDRing2OutPointRing(coinIDRing *CoinIDRing) (*api.OutPointRing, error) {
+	outpointRing := &api.OutPointRing{
+		Version:   coinIDRing.Version,
+		BlockIDs:  coinIDRing.BlockIDs,
+		OutPoints: make([]*api.OutPoint, len(coinIDRing.CoinIDs)),
+	}
+	var err error
+	for i, coinID := range coinIDRing.CoinIDs {
+		outpointRing.OutPoints[i], err = api.NewOutPointFromTxIdStr(coinID.TxID, coinID.Index)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return outpointRing, nil
+}
+
+func outPointRing2CoinIDRing(outPointRing *api.OutPointRing) (*CoinIDRing, error) {
+	coinIDs := make([]*CoinID, len(outPointRing.OutPoints))
+	for i, outPoint := range outPointRing.OutPoints {
+		coinIDs[i] = &CoinID{
+			TxID:  outPoint.TxId.String(),
+			Index: outPoint.Index,
+		}
+	}
+	return &CoinIDRing{
+		Version:  outPointRing.Version,
+		BlockIDs: outPointRing.BlockIDs,
+		CoinIDs:  coinIDs,
+	}, nil
+}
+func BuildCoinRings(serializedBlocksForRingGroup [][]byte) ([]*CoinRing, error) {
+	txoRings, err := api.BuildTxoRingsFromRingBlocks(serializedBlocksForRingGroup)
+	if err != nil {
+		return nil, err
+	}
+	coinRings := make([]*CoinRing, len(txoRings))
+	for i := 0; i < len(txoRings); i++ {
+		coinRings[i], err = apiTxoRing2CoinRing(txoRings[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return coinRings, nil
+}
+func BuildCoinIDRings(serializedBlocksForRingGroup [][]byte) ([]*CoinIDRing, error) {
+	coinRings, err := BuildCoinRings(serializedBlocksForRingGroup)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]*CoinIDRing, len(coinRings))
+	for i := 0; i < len(coinRings); i++ {
+		res[i] = coinRings[i].CoinIDRing
+	}
+	return res, nil
 }

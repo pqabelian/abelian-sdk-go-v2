@@ -111,6 +111,20 @@ func main() {
 }
 ```
 
+#### 1.4 Txo and Txo Ring
+
+The Abelian blockchain system utilizes the UTXO-based model, assigning a unique identifier, known as an **`outPoint`**,
+to each transaction output (**TXO**), which is composed of a transaction ID (txid) and an index number.
+
+The mechanism to implementation privacy can be simply described as taking the coins generated within a certain period of
+time, sorting them according to specified rules, and dividing them into groups based on the sorting results, each group
+being called a **ring**.
+
+Considering the concepts of outPoint and TXO, it is natural to introduce two concepts: **`outPointRing`** and TXORing:
+
+- `outPointRing`, contains mainly the outPoints that make up the corresponding ring, in addition to some metadata
+- `TXORing`, contains mainly the TXO that make up the specified ring, and also contains some metadata
+
 ### 2 Fetch Data from Blockchain
 When scanning coins and submitting transactions using the Abelian SDK, it needs access to blockchain. 
 By default, the Abelian SDK fetch data on the chain through the official blockchain node called `abec`, you can find more info in [Abelian Foundation](https://pqabelian.io/) .
@@ -131,6 +145,9 @@ mempool has no unconfirmed transactions.
 Account is the key concept of Abelian SDK. In [Abelian SDK v1](https://github.com/pqabelian/abelian-sdk-go), an account contain an address and keys pair, and scan the blockchain will determine the account's current available balance and the history of transactions on blockchain.
 This kind of account can be viewed as single address account, and named `CryptoKeysAccount` in Abelian SDK v2.
 
+In the subsequent steps, based on the concept of accounts, the procedure for how to use accounts to scan TXOs (coins) in
+a block and how to get the Ring information of TXOs would be discussed.
+
 Thanks to the application of the new cryptographic scheme, it makes it possible to use `Root Seeds` as an account named `RootSeedsAccount`. 
 An `RootSeedsAccount`, which is recommend to use in Abelian SDK v2, that can contain any number of `CryptoKeysAccount`, and naturally contain multiple addresses.
 
@@ -143,9 +160,10 @@ The built-in accounts in database will be used for subsequent examples to show h
 
 ### 4. Demo Application
 In the directory [examples](examples), there are three examples to show how to use Abelian SDK to receive coin and transfer:
-- [coin](examples/coin) shows how to scan coins in blockchain and track status of coins
+
+- [coin](examples/coin) shows how to scan coins in blockchain, record ring info for coins, and track status of coins
 - [transaction](examples/transaction) shows how to make an unsigned transaction, sign unsigned transaction and submit transaction to blockchain
-- [transactionTracker](examples/transactionTracker) shows how to make an unsigned transaction, sign unsigned transaction and submit transaction to blockchain
+- [transactionTracker](examples/transactionTracker) shows how to track the status of transaction
 
 Another thing that must be mentioned is that you need to specify the corresponding connection information for blockchain node.
 
@@ -157,7 +175,8 @@ The subsequent transaction in block will be transfer transaction, it would has a
 In the directory [coin](examples/coin), there are functions to show how to scan and track coins in blocks:
 - `ScanCoins` check every output (newly generated coin) in a transaction with specified view account
 - `TrackCoins` check every input (consumed coin) in a transaction with specified spend account
-- `HandleCoinMaturity` mark coins spendable and update their status in the database according to the specified height 
+- `HandleCoinMaturity` mark coins spendable and update their metadata such as ring info and status in the database
+  according to the specified height
 
 For each coin, it would be in four states:
 - `Immature`: the coin is not spendable yet

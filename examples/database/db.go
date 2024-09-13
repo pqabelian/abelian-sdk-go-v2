@@ -54,7 +54,9 @@ func init() {
 		coin_value INTEGER,
 		serial_number TEXT DEFAULT  '',
 		block_id TEXT,
-		block_height INTEGER, 
+		block_height INTEGER,
+		ring_id TEXT DEFAULT  '',
+		ring_index INTEGER,
 		is_coinbase BOOLEAN,
 		status INTEGER,
 		data BLOB)`)
@@ -66,6 +68,23 @@ func init() {
 		return
 	}
 	fmt.Println("Table coin created!")
+
+	stmt, err = db.Prepare(`CREATE TABLE IF NOT EXISTS ring(
+		ID INTEGER PRIMARY KEY,
+		ring_id TEXT DEFAULT  '',
+		ring_version INTEGER,
+		ring_height INTEGER,
+		ring_block_ids TEXT,
+		ring_size INTEGER,
+		from_coinbase BOOLEAN)`)
+	if err != nil {
+		panic(err)
+	}
+	_, err = stmt.Exec()
+	if err != nil {
+		return
+	}
+	fmt.Println("Table ring created!")
 
 	stmt, err = db.Prepare(`CREATE TABLE IF NOT EXISTS tx (
 		ID INTEGER PRIMARY KEY,
