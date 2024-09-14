@@ -10,8 +10,8 @@ github.com/jrick/logrotate v1.0.0 h1:lQ1bL/n9mBNeIXoTUoYRlK4dHuNJVofX9oWqBtPnSzI
 github.com/jrick/logrotate v1.0.0/go.mod h1:LNinyqDIJnpAur+b8yyulnQw/wDuN1+BYKlTRt3OuAQ=
 github.com/mattn/go-sqlite3 v1.14.22 h1:2gZY6PC6kBnID23Tichd1K+Z0oS6nE/XwU+Vz/5o4kU=
 github.com/mattn/go-sqlite3 v1.14.22/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
-github.com/pqabelian/abec v1.0.1-0.20240724140110-9d84da20fd1a h1:asmFsp5bmbuQigIBHJIIXDynX7Tu1A1/lmW/o+CruDw=
-github.com/pqabelian/abec v1.0.1-0.20240724140110-9d84da20fd1a/go.mod h1:6I2vtQAxlWJu8+d5aq/poFPEOLLih68+q5wzgV5Sb2M=
+github.com/pqabelian/abec v1.0.1-0.20240914150420-bdd2c1c1808c h1:aHzAQzSriVuaGx1R7PmqBTKDLbiM4sZReYOqzMRehN4=
+github.com/pqabelian/abec v1.0.1-0.20240914150420-bdd2c1c1808c/go.mod h1:6I2vtQAxlWJu8+d5aq/poFPEOLLih68+q5wzgV5Sb2M=
 github.com/pqabelian/abeutil v0.0.0-20231107022913-d6d3bf295938 h1:zONjJzpgNvAqNFzFQjL6nhSaclegMdFLFLMwrImwxNM=
 github.com/pqabelian/abeutil v0.0.0-20231107022913-d6d3bf295938/go.mod h1:kZhOujT1b8QyruSMsG1gAlFmoWBU4lqsbC5j9+FrKxQ=
 github.com/pqabelian/pqringct v0.0.0-20240724124001-42a8952f4b48 h1:jHx23OC26YiJDn1yABiNi2uiIe4UDj7r9sIL9FSlUwM=
