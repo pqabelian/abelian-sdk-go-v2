@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"github.com/pqabelian/abelian-sdk-go-v2/abelian"
 	"strings"
 )
@@ -98,6 +99,10 @@ WHERE ring_id=?`, ringID)
 	coins, err := loadCoinByRingID(ringID)
 	if err != nil {
 		return nil, err
+	}
+	// assert
+	if len(coins) != int(ring.RingSize) {
+		return nil, fmt.Errorf("ring size not match")
 	}
 	ring.Coins = make([]*abelian.Coin, len(coins))
 	for i := 0; i < len(coins); i++ {

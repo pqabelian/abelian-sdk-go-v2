@@ -286,7 +286,7 @@ WHERE account_id!=0 AND serial_number = ?`, serialNumber)
 func loadCoinByRingID(ringID string) ([]*Coin, error) {
 	rows, err := db.Query(`SELECT ID,account_id,is_coinbase,transaction_version,transaction_id,output_index,coin_value,block_id ,block_height, data,ring_id,ring_index
 								 FROM coin  
-								WHERE ring_id = ? AND status = 1
+								WHERE ring_id = ?
 								ORDER BY ring_index`, ringID)
 	if err != nil {
 		return nil, err
