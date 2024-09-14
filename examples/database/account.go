@@ -62,18 +62,18 @@ type Account struct {
 
 func InsertAccount(
 	networkID abelian.NetworkID,
-	accountType abelian.AccountPrivacyLevel,
+	privacyLevel abelian.AccountPrivacyLevel,
 	coinSpendKeySeed []byte,
 	coinSerialNumberKeySeed []byte,
 	coinValueKeySeed []byte,
 	coinDetectorKey []byte) (int64, error) {
-	stmt, err := db.Prepare("INSERT INTO account (network_id,account_privacy_level,spend_key_seed,sn_key_seed,value_key_seed,detector_key) VALUES (?,?,?,?,?,?)")
+	stmt, err := db.Prepare("INSERT INTO account (network_id,account_type,account_privacy_level,spend_key_seed,sn_key_seed,value_key_seed,detector_key) VALUES (?,?,?,?,?,?)")
 	if err != nil {
 		return -1, err
 	}
 	result, err := stmt.Exec(
 		networkID,
-		accountType,
+		privacyLevel,
 		hex.EncodeToString(coinSpendKeySeed),
 		hex.EncodeToString(coinSerialNumberKeySeed),
 		hex.EncodeToString(coinValueKeySeed),
