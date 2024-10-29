@@ -41,7 +41,7 @@ func (address *ShortAbelAddress) Validate() error {
 // NewShortAbelAddress
 func NewShortAbelAddress(chainID NetworkID, fingerprint []byte, abelAddressHash []byte) (*ShortAbelAddress, error) {
 	saData := make([]byte, 0, 2+len(fingerprint)+len(abelAddressHash))
-	saData = append(saData, 0xab, 0xe1+byte(chainID))
+	saData = append(saData, 0xab, 0xe1+byte(chainID+1))
 	saData = append(saData, fingerprint...)
 	saData = append(saData, abelAddressHash...)
 
@@ -78,8 +78,8 @@ func (metadata *MetaData) Bytes() ([]byte, error) {
 	if err := metadata.Validate(); err != nil {
 		return nil, err
 	}
-	firstBytes := (metadata.Version & 0x0F) | ((uint8(metadata.NetID) & 0x0F) >> 4)
-	secondBytes := 0x00 | ((uint8(metadata.CryptoScheme) & 0x03) >> 4) | ((uint8(metadata.PrivacyLevel) & 0x03) >> 6)
+	firstBytes := uint8(metadata.NetID)&0x0F | ((metadata.Version & 0x0F) << 4)
+	secondBytes := 0x00<<4 | ((uint8(metadata.CryptoScheme) & 0x03) << 2) | ((uint8(metadata.PrivacyLevel) & 0x03) << 0)
 	return []byte{firstBytes, secondBytes}, nil
 }
 func NewShortAbelAddressV2(metadata *MetaData, fingerprint []byte, cryptoAddressHash []byte) (*ShortAbelAddress, error) {
