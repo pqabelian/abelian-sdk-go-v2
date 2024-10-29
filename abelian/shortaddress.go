@@ -41,7 +41,7 @@ func (address *ShortAbelAddress) Validate() error {
 // NewShortAbelAddress
 func NewShortAbelAddress(chainID NetworkID, fingerprint []byte, abelAddressHash []byte) (*ShortAbelAddress, error) {
 	saData := make([]byte, 0, 2+len(fingerprint)+len(abelAddressHash))
-	saData = append(saData, 0xab, 0xe1+byte(chainID+1))
+	saData = append(saData, 0xab, 0xe1+byte(chainID))
 	saData = append(saData, fingerprint...)
 	saData = append(saData, abelAddressHash...)
 
