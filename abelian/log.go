@@ -12,7 +12,6 @@ import (
 type logWriter struct{}
 
 func (logWriter) Write(p []byte) (n int, err error) {
-	os.Stdout.Write(p)
 	logRotator.Write(p)
 	return len(p), nil
 }
@@ -82,5 +81,5 @@ func init() {
 		logDir = "."
 	}
 	initLogRotator(fmt.Sprintf("%s/sdk.log", logDir))
-	setLogLevels("info")
+	setLogLevels("off")
 }
