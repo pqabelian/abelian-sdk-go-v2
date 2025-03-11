@@ -320,6 +320,26 @@ func GenerateCryptoKeysAndAddressByRootSeedsFromPublicRand(argsData []byte) *C.c
 	return marshalResultAndPackToRetData(result)
 }
 
+//export GetCoinAddressFromCryptoAddress
+func GetCoinAddressFromCryptoAddress(argsData []byte) *C.char {
+	// Unmarshal args.
+	args := &pb.GetCoinAddressFromCryptoAddressArgs{}
+	unmarshalArgs(argsData, args)
+
+	// Prepare data.
+	cryptoAddress, err := core.NewCryptoAddress(args.GetCryptoAddress())
+	panicIf(err)
+
+	// Do real work.
+	coinAddress := cryptoAddress.GetCoinAddress()
+
+	// Marshal result and return it.
+	result := &pb.GetCoinAddressFromCryptoAddressResult{
+		CoinAddress: coinAddress.Data(),
+	}
+	return marshalResultAndPackToRetData(result)
+}
+
 //export GetAbelAddressFromCryptoAddress
 func GetAbelAddressFromCryptoAddress(argsData []byte) *C.char {
 	// Unmarshal args.
@@ -569,6 +589,47 @@ func GenerateCoinSerialNumber(argsData []byte) *C.char {
 	// Marshal result and return it.
 	result := &pb.GenerateCoinSerialNumberResult{
 		SerialNumber: serialNumbers[0],
+	}
+	return marshalResultAndPackToRetData(result)
+}
+
+//export GetFingerprintFromCoinAddress
+func GetFingerprintFromCoinAddress(argsData []byte) *C.char {
+	// Unmarshal args.
+	args := &pb.GetFingerprintFromCoinAddressArgs{}
+	unmarshalArgs(argsData, args)
+
+	// Prepare data.
+	coinAddressBytes := args.GetCoinAddress()
+
+	// Do real work.
+	coinAddress, err := core.NewCoinAddress(coinAddressBytes)
+	panicIf(err)
+
+	// Marshal result and return it.
+	result := &pb.GetFingerprintFromCoinAddressResult{
+		Fingerprint: coinAddress.Fingerprint(),
+	}
+	return marshalResultAndPackToRetData(result)
+}
+
+//export DecodeCoinAddressFromSerializedTxOutData
+func DecodeCoinAddressFromSerializedTxOutData(argsData []byte) *C.char {
+	// Unmarshal args.
+	args := &pb.DecodeCoinAddressFromSerializedTxOutDataArgs{}
+	unmarshalArgs(argsData, args)
+
+	// Prepare data.
+	txVersion := args.GetTxVersion()
+	serializedTxOutData := args.GetSerializedTxOutData()
+
+	// Do real work.
+	coinAddress, err := core.DecodeCoinAddressFromSerializedTxOutData(txVersion, serializedTxOutData)
+	panicIf(err)
+
+	// Marshal result and return it.
+	result := &pb.DecodeCoinAddressFromSerializedTxOutDataResult{
+		CoinAddress: coinAddress.Data(),
 	}
 	return marshalResultAndPackToRetData(result)
 }

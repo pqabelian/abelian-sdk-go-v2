@@ -227,3 +227,20 @@ message GenerateCoinSerialNumberArgs {
 message GenerateCoinSerialNumberResult {
   bytes serialNumber = 1;
 }
+
+message GetFingerprintFromCoinAddressArgs {
+  bytes coinAddress = 1;
+}
+
+message GetFingerprintFromCoinAddressResult {
+  bytes fingerprint = 1;
+}
+
+message DecodeCoinAddressFromSerializedTxOutDataArgs {
+  uint32 txVersion = 1;
+  bytes serializedTxOutData = 2;
+}
+
+message DecodeCoinAddressFromSerializedTxOutDataResult {
+  bytes coinAddress = 1;
+}
