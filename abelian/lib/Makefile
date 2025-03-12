@@ -3,7 +3,7 @@ SHELL:=/bin/bash
 
 ifeq ($(OS), darwin)
 	DYLIB_EXT = dylib
-	DYLIB_VERSION = 2.0.0
+	DYLIB_VERSION = 2.0.1
 else
 	DYLIB_EXT = so
 endif
