@@ -310,6 +310,9 @@ func TxoCoinReceiveByRootSeeds(txVersion uint32, serializedTxOut []byte, coinVal
 	}
 	return success, value, err
 }
+func PrivacyLevelPseudonymTxoCoinParse(txVersion uint32, serializedTxOut []byte) (value uint64, err error) {
+	return api.PrivacyLevelPseudonymTxoCoinParse(txVersion, serializedTxOut)
+}
 
 func GenerateCoinSerialNumberByRootSeeds(
 	outPoints []*OutPoint,

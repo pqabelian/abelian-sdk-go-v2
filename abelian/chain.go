@@ -93,6 +93,13 @@ type CoinIDRing struct {
 	CoinIDs  []*CoinID
 }
 
+func (ring *CoinIDRing) RingId() (string, error) {
+	outpointRing, err := coinIDRing2OutPointRing(ring)
+	if err != nil {
+		return "", err
+	}
+	return outpointRing.RingId()
+}
 func coinIDRing2OutPointRing(coinIDRing *CoinIDRing) (*api.OutPointRing, error) {
 	outpointRing := &api.OutPointRing{
 		Version:   coinIDRing.Version,
